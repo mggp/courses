@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1: RAG from the ground up — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 1 · Building AI Systems in Python</p>
+    <h1>RAG from the ground up</h1>
+    <p class="lede">You know what RAG is. By the end of this lesson you will have <em>built</em> one — a script that answers questions from your own documents, no framework hiding the mechanics.</p>
+    <p class="meta">~30 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a> &nbsp;·&nbsp; <a href="../assets/quiz.js">quiz component</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>A language-learning app needs a tutor that answers from <em>its own</em> course material — vocabulary lists, grammar rules, the learner's mistakes — and never makes things up. A fintech needs answers that can be traced to a source document, because "the model said so" is not a compliance answer. Both are the same problem: <strong>retrieval-augmented generation</strong>. Your mentor asked if you knew it; this lesson makes you able to say what you'd build.</p>
+  </div>
+
+  <h2>The whole loop, in one breath</h2>
+  <p>RAG bolts a <em>document store</em> onto a language model. When a question arrives, you search the store for the most relevant excerpts, then hand those excerpts to the model alongside the question. The model's job is to answer <em>from the excerpts</em>, not from its own memory. That is the entire idea — it is credited to Lewis et al., who defined RAG as combining a parametric memory (the model) with a non-parametric memory (a retrievable index of documents):</p>
+  <blockquote>We explore a general-purpose fine-tuning recipe for retrieval-augmented generation (RAG) — models which combine pre-trained parametric and non-parametric memory for language generation. <cite><a href="https://arxiv.org/abs/2005.11401">Lewis et al., NeurIPS 2020</a></cite></blockquote>
+
+  <p>Two phases run at very different frequencies:</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Index</span><span class="node-sub">once per document set</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Retrieve</span><span class="node-sub">once per question</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Generate</span><span class="node-sub">once per question</span></span>
+  </div>
+
+  <h2>Only the knowledge you need</h2>
+
+  <h3>Embeddings: the retrieval key</h3>
+  <p>An <strong>embedding</strong> is an array of numbers an embedding model produces for a piece of text. Same length every time, no matter the text's length; for the model in this lesson, 384 numbers. Think of it as a coordinate in a strange high-dimensional space where <em>similar meaning sits near similar meaning</em>. Simon Willison calls the resulting search <a href="https://simonwillison.net/2023/Oct/23/embeddings/">"vibes-based search"</a> — and it is the key trick in all of RAG.</p>
+  <div class="sidenote"><strong>The two spaces don't match up.</strong> A question ("what is shot-scraper?") and a statement ("shot-scraper wraps Playwright") use different grammar. Some embedding models handle queries and passages separately for this reason; <code>all-MiniLM-L6-v2</code> does not, which is fine for a first pipeline.</div>
+
+  <h3>Chunking: size matters</h3>
+  <p>You don't embed a whole book — a question matches a <em>few sentences</em>, and the model's context window is finite. You split documents into <strong>chunks</strong>, embed each chunk, and retrieve whole chunks. Chunk size is the first quality knob you'll tune; here we use whole short paragraphs.</p>
+
+  <h3>Cosine similarity: "how close"</h3>
+  <p>To rank chunks against a question, normalize all vectors to unit length, then take the dot product — this is the <strong>cosine similarity</strong>: 1 for the same direction, 0 for orthogonal. Willison's implementation is just that:</p>
+  <pre><code>def cosine_similarity(a, b):
+    dot_product = sum(x * y for x, y in zip(a, b))
+    magnitude_a = sum(x * x for x in a) ** 0.5
+    magnitude_b = sum(x * x for x in b) ** 0.5
+    return dot_product / (magnitude_a * magnitude_b)</code></pre>
+  <p class="sidenote">Source: <a href="https://github.com/simonw/llm">simonw/llm</a>, and discussed in the <a href="https://simonwillison.net/2023/Oct/23/embeddings/">embeddings essay</a>.</p>
+
+  <h3>Generation: grounded, not remembered</h3>
+  <p>The last step is a prompt: retrieved chunks as <em>context</em>, then the question, with an instruction to answer only from the context. The model is still doing the writing — but it is writing from your documents, which is what <strong>grounds</strong> the answer. This is why RAG cuts hallucination: the model no longer has to invent the facts, only the wording.</p>
+
+  <h2>Build it</h2>
+  <p>Everything above is ~30 lines. Create a venv and install:</p>
+  <pre><code><span class="cmt"># in a fresh directory</span>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install numpy sentence-transformers openai</code></pre>
+  <div class="sidenote"><strong>Heads-up:</strong> <code>sentence-transformers</code> pulls in PyTorch — the install is a few hundred MB, and the first run downloads the <code>all-MiniLM-L6-v2</code> model (~90 MB) from Hugging Face. One-time cost; everything after is offline.</div>
+
+  <p>Save this as <code>rag.py</code>:</p>
+  <pre><code><span class="cmt">"""rag.py — a minimal Retrieval-Augmented Generation pipeline."""</span>
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+<span class="cmt"># ---- your corpus: five one-line "documents" ----</span>
+docs = [
+    "RAG stands for Retrieval-Augmented Generation.",
+    "An embedding maps text into a vector space where similar meaning sits nearby.",
+    "Cosine similarity measures how close two normalized vectors are.",
+    "Chunking splits a document into pieces small enough to retrieve precisely.",
+    "Generation feeds retrieved chunks to an LLM along with the question.",
+]
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def embed(texts):
+    vecs = model.encode(texts)
+    return vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+
+doc_vecs = embed(docs)
+
+def retrieve(query, k=2):
+    q = embed([query])[0]
+    scores = doc_vecs @ q
+    order = np.argsort(scores)[::-1][:k]
+    return [(docs[i], float(scores[i])) for i in order]
+
+def generate(question, context):
+    prompt = (
+        "Answer the question using only the context below.\n\n"
+        f"Context:\n{context}\n\nQuestion: {question}\n"
+    )
+    <span class="cmt"># Swap in any provider you have access to: OpenAI, Anthropic, a local model…</span>
+    import openai
+    reply = openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return reply.choices[0].message.content
+
+if __name__ == "__main__":
+    question = "How do you measure how close two meanings are?"
+    hits = retrieve(question)
+    for doc, score in hits:
+        print(f"{score:.3f}  {doc}")
+    context = "\n\n".join(doc for doc, _ in hits)
+    print("\n--- generation (optional) ---")
+    <span class="cmt"># print(generate(question, context))</span></code></pre>
+
+  <ol class="steps">
+    <li>Run <code>python rag.py</code>. You should see two lines — the chunk about cosine similarity ranked first, the chunk about embeddings second, with scores between 0 and 1.</li>
+    <li>Ask a different question that <em>doesn't</em> mention the answer's words, e.g. <code>"How does RAG stop the model making things up?"</code> The ranked chunks should still be sensible. That is semantic — "vibes-based" — search doing its job.</li>
+    <li>Swap <code>docs</code> for five real sentences from something you own — a lesson, a README, a page from the language app you want to build. Rerun. The pipeline is now <em>your</em> pipeline.</li>
+    <li>(Optional) Uncomment the <code>generate</code> call with an <code>OPENAI_API_KEY</code> set, or point the function at whatever model you use.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Anything unclear — why the normalization is there, why <code>argsort</code> is reversed, what happens if a chunk scores 0 — ask me directly. This lesson is deliberately tiny; the mechanics are the point, and they're worth getting right before we add chunkers, databases, and frameworks.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the file. Recall, don't look. Same-length answers, no hints.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · RAG loop</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="The embedding model maps the query into the same vector space as the chunks — that shared space is what makes the comparison possible at all.">
+        <p class="q-text">Which step turns a query into a vector?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The embedding</button>
+          <button type="button" class="quiz-option">The retrieval</button>
+          <button type="button" class="quiz-option">The tokenizer</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Indexing — chunking and embedding the documents — runs once, before any question arrives. Retrieval and generation run once per question.">
+        <p class="q-text">What must come before retrieval?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">Indexing the docs</button>
+          <button type="button" class="quiz-option">Generating a text</button>
+          <button type="button" class="quiz-option">Prompting the LLM</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="1" data-explain="The prompt tells the model to answer only from the retrieved chunks, so the answer is grounded in real source material instead of the model guessing from memory.">
+        <p class="q-text">Why does RAG cut hallucination?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">Answers stay in context</button>
+          <button type="button" class="quiz-option">Answers echo the prompt</button>
+          <button type="button" class="quiz-option">Answers check the facts</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary source for this lesson</p>
+    <p><a href="https://simonwillison.net/2023/Oct/23/embeddings/">"Embeddings: What they are and why they matter" — Simon Willison</a>. The clearest practitioner explanation of embeddings and RAG that exists; it includes the one-liner shell-script RAG this lesson is the Python version of. Read it before the next lesson. If you want the theory, the <a href="https://arxiv.org/abs/2005.11401">original RAG paper</a> is where the term comes from.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#rag">RAG</a>, <a href="../reference/glossary.html#embedding">embedding</a>, <a href="../reference/glossary.html#chunking">chunking</a>, <a href="../reference/glossary.html#cosine-similarity">cosine similarity</a>, <a href="../reference/glossary.html#grounding">grounding</a>.</p>
+    <p class="next">Next lesson, we make it honest: <em>chunking real documents and evaluating whether retrieval actually found the right chunks</em> — the step between "a demo" and "a system you'd ship to a language learner or a compliance officer."</p>
+  </footer>
+</main>
+</body>
+</html>

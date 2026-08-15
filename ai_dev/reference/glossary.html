@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="prose">
+  <header class="lesson-header">
+    <p class="kicker">Reference · Building AI Systems</p>
+    <h1>Glossary</h1>
+    <p class="lede">The canonical language of this course. Every lesson uses these terms and only these terms. Definitions grow as your understanding does.</p>
+  </header>
+
+  <h2>The retrieval pipeline</h2>
+
+  <p id="rag"><strong>RAG (Retrieval-Augmented Generation)</strong>: A pattern where a model answers a question by first pulling relevant excerpts from a document store, then generating a response conditioned on those excerpts. <em>Avoid:</em> "talking to your documents", "AI over your data".</p>
+
+  <p id="chunking"><strong>Chunking</strong>: Splitting a source document into small pieces that can be retrieved independently. <em>Avoid:</em> "splitting", "segmentation".</p>
+
+  <p id="embedding"><strong>Embedding</strong>: An array of numbers produced by an embedding model that maps text into a vector space where similar meaning sits nearby. <em>Avoid:</em> "vectorization" when you mean the model output.</p>
+
+  <p id="cosine-similarity"><strong>Cosine similarity</strong>: The cosine of the angle between two vectors, used as a measure of how close two embeddings are; 1 means identical direction, 0 means orthogonal. <em>Avoid:</em> "score" without saying of what.</p>
+
+  <p id="retrieval"><strong>Retrieval</strong>: The step that embeds a query and returns the chunks whose vectors are closest to the query's vector.</p>
+
+  <p id="generation"><strong>Generation</strong>: The step that sends the retrieved chunks plus the question to a language model and gets back a grounded answer.</p>
+
+  <p id="grounding"><strong>Grounding</strong>: Anchoring an answer in source material the model can be checked against, rather than its internal knowledge. <em>Avoid:</em> "making it factual".</p>
+
+  <p id="provenance"><strong>Provenance</strong>: The identity of the chunk an answer came from, carried on every chunk (an id, later a source path). Retrieval without provenance is an answer without a citation. <em>Avoid:</em> "metadata" when you mean the citation trail.</p>
+
+  <p id="gold-answer"><strong>Gold answer</strong>: A hand-written pair of a question and the exact sentence that must be retrieved to answer it. The unit you score retrieval against.</p>
+
+  <p id="recall"><strong>Recall@k</strong>: The fraction of gold chunks found in the top-k retrieved chunks, measured at the k you will actually feed the generator. 1.0 on an index smaller than k is vacuous.</p>
+
+  <h2>Model vocabulary</h2>
+
+  <p id="embedding-model"><strong>Embedding model</strong>: A model trained to map text (and sometimes images) into a shared vector space. <em>Avoid:</em> "the encoder" unless you are discussing its internals.</p>
+
+  <p id="llm"><strong>Language model (LLM)</strong>: A model that generates text given a prompt. In this course it is the generator in RAG, never the store of your data. <em>Avoid:</em> "the AI" when you mean a specific model.</p>
+
+  <p id="context-window"><strong>Context window</strong>: The number of tokens a language model can take as input in one call — the reason retrieval must select a few chunks rather than dump a whole corpus in.</p>
+
+  <p id="token"><strong>Token</strong>: A unit of text a model reads and writes — roughly a word fragment, not a word.</p>
+
+  <p id="hallucination"><strong>Hallucination</strong>: Confident output that does not match the source material or reality. RAG reduces — it does not eliminate — hallucination.</p>
+
+  <h2>Where it lives</h2>
+
+  <p id="vector-store"><strong>Vector store</strong>: Where chunk text and its embedding live together. For this course the default is a plain file or SQL table, not a dedicated vector database. <em>Avoid:</em> "vector DB" for any old place you kept a numpy array.</p>
+
+  <p id="embedding-dimension"><strong>Embedding dimension</strong>: The fixed length of every vector an embedding model emits (e.g. 384 for <code>all-MiniLM-L6-v2</code>).</p>
+
+  <h2>Ambiguities resolved in this course</h2>
+  <p>"Retrieval" always means embedding search in this course — never keyword search. When both are combined (hybrid search), it is spelled out explicitly.</p>
+  <p>"Score" always means cosine similarity between two normalized vectors unless a different metric is named.</p>
+
+  <footer class="lesson-footer">
+    <p>First written with <a href="../lessons/0001-rag-from-the-ground-up.html">Lesson 1: RAG from the ground up</a>. Revise in place as understanding deepens — never leave a stale definition.</p>
+  </footer>
+</main>
+</body>
+</html>

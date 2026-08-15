@@ -1,0 +1,322 @@
+/* ------------------------------------------------------------------
+   course.css — shared stylesheet for the AI Systems course.
+   Tufte-flavoured: serif body, generous measure, marginal notes,
+   quiet colours. Print-friendly. Every lesson links this file.
+   ------------------------------------------------------------------ */
+
+:root {
+  --paper: #fbfaf6;
+  --ink: #23211b;
+  --muted: #6f6a5f;
+  --accent: #a04b2c;
+  --accent-soft: #f2e4db;
+  --line: #e2dccf;
+  --code-bg: #f2efe7;
+  --good: #2e6b4f;
+  --good-soft: #e2eee6;
+  --bad: #a3322a;
+  --bad-soft: #f3e0dd;
+  --surface: #ffffff;
+  --measure: 42rem;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 3rem 1.25rem 6rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  font-feature-settings: "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- prose column ---------- */
+.prose {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* ---------- header ---------- */
+.lesson-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.kicker {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.6rem;
+}
+
+h1, h2, h3, h4 {
+  line-height: 1.22;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+h1 { font-size: 2.05rem; margin: 0 0 0.4rem; }
+
+.lesson-header .lede {
+  font-size: 1.12rem;
+  color: var(--muted);
+  margin: 0.4rem 0 0;
+  max-width: 36rem;
+}
+
+.meta {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-top: 0.9rem;
+}
+.meta a { color: var(--muted); }
+
+h2 {
+  font-size: 1.38rem;
+  margin: 2.6rem 0 0.8rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+h3 { font-size: 1.12rem; margin: 1.9rem 0 0.5rem; }
+
+p { margin: 0 0 1.05rem; }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+ul, ol { margin: 0 0 1.1rem; padding-left: 1.4rem; }
+li { margin-bottom: 0.4rem; }
+
+strong { font-weight: 700; }
+
+/* ---------- marginalia ---------- */
+.sidenote, .marginnote {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 0.85rem;
+  margin: 0.9rem 0 1.2rem;
+}
+.sidenote > strong, .marginnote > strong { color: var(--ink); }
+
+@media (min-width: 70em) {
+  .sidenote, .marginnote {
+    float: right;
+    clear: right;
+    width: 15rem;
+    margin: 0.15rem -17rem 1rem 1.5rem;
+    border-left: none;
+    border-right: 2px solid var(--line);
+    padding: 0 0.9rem 0 0;
+  }
+}
+
+/* ---------- callouts ---------- */
+.callout {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 0.9rem 1.15rem;
+  margin: 1.4rem 0;
+  font-size: 0.97rem;
+}
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout .callout-title {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.45rem;
+}
+
+.callout-mission { border-left-color: var(--good); background: var(--good-soft); }
+.callout-mission .callout-title { color: var(--good); }
+
+.callout-ask { border-left-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- code ---------- */
+pre, code, kbd {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.87em;
+}
+code { background: var(--code-bg); padding: 0.08em 0.32em; border-radius: 3px; }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.95rem 1.1rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  margin: 1.1rem 0;
+}
+pre code { background: none; padding: 0; border-radius: 0; }
+pre .cmt { color: var(--muted); }
+kbd {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+}
+
+/* ---------- steps ---------- */
+.step { counter-increment: steps; margin: 1.4rem 0; }
+.steps { counter-reset: steps; margin: 0; padding: 0; list-style: none; }
+.steps > li {
+  position: relative;
+  padding-left: 2.6rem;
+  margin-bottom: 1.5rem;
+}
+.steps > li::before {
+  counter-increment: steps;
+  content: counter(steps);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+/* ---------- pipeline diagram ---------- */
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.4rem;
+  margin: 1.2rem 0;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+.flow .node {
+  flex: 1 1 8rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  text-align: center;
+}
+.flow .node .node-title { font-weight: 700; display: block; }
+.flow .node .node-sub { color: var(--muted); font-size: 0.72rem; }
+.flow .arrow { align-self: center; color: var(--muted); }
+
+/* ---------- quiz ---------- */
+.quiz {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1.1rem 1.3rem 1.25rem;
+  margin: 1.5rem 0;
+}
+.quiz .quiz-head {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.quiz-score { color: var(--muted); letter-spacing: 0.04em; }
+
+.quiz-question { margin: 0 0 1.15rem; }
+.quiz-question .q-text { margin: 0 0 0.55rem; font-weight: 600; }
+
+.quiz-options { display: flex; flex-direction: column; gap: 0.45rem; }
+.quiz-option {
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.quiz-option:disabled { cursor: default; }
+.quiz-option.right { background: var(--good-soft); border-color: var(--good); }
+.quiz-option.wrong { background: var(--bad-soft); border-color: var(--bad); }
+
+.quiz-feedback {
+  display: none;
+  margin: 0.55rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.quiz-feedback.show { display: block; }
+
+/* ---------- footer ---------- */
+.lesson-footer {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.lesson-footer .next { margin-top: 0.6rem; }
+
+/* ---------- dark mode ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c1b18;
+    --surface: #24221e;
+    --ink: #e6e1d5;
+    --muted: #a39c8d;
+    --accent: #d97a4e;
+    --accent-soft: #3a2a20;
+    --line: #3a372f;
+    --code-bg: #26241f;
+    --good: #7cbf9a;
+    --good-soft: #223529;
+    --bad: #e0685f;
+    --bad-soft: #3b2320;
+    color-scheme: dark;
+  }
+}
+
+/* ---------- print ---------- */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    padding: 0;
+    font-size: 11pt;
+  }
+  .lesson-header { border-bottom-color: #000; }
+  h2 { border-top-color: #999; }
+  a { color: #000; }
+  .quiz-option { border-color: #999; }
+  pre { background: #f7f7f7; }
+  .sidenote, .marginnote { float: none; width: auto; margin: 0.7rem 0; }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #444;
+  }
+}

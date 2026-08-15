@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2: Make retrieval honest — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 2 · Building AI Systems in Python</p>
+    <h1>Make retrieval honest</h1>
+    <p class="lede">Chunking real documents, then measuring whether retrieval actually found the right chunks. This is the step between "a demo" and "a system you'd ship."</p>
+    <p class="meta">~45 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0001-rag-from-the-ground-up.html">lesson 1</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>A compliance officer won't accept "the model said so" — they need the answer traced to a policy document. A language learner needs to click through to the lesson their answer came from. Both demands rest on the same thing: <strong>retrieval must actually find the right chunk</strong>. Last lesson you built retrieval; this lesson you find out whether it works.</p>
+  </div>
+
+  <h2>Your own run proved the problem</h2>
+  <p>Look back at the output of your <code>rag.py</code> from <a href="../lessons/0001-rag-from-the-ground-up.html">lesson 1</a> — the harder question you tried:</p>
+  <pre><code>0.583  RAG stands for Retrieval-Augmented Generation.
+0.183  Chunking splits a document into pieces small enough to retrieve precisely.
+0.133  Generation feeds retrieved chunks to an LLM along with the question.
+0.046  An embedding maps text into a vector space where similar meaning sits nearby.</code></pre>
+  <p>Read it twice. The chunk that actually answers "how does RAG stop the model making things up?" — <em>Generation feeds retrieved chunks to an LLM…</em> — is <strong>third</strong>, at 0.133. The top hit won on a keyword ("RAG"), not on meaning. The pipeline "worked," and would have quietly fed the wrong context to the generator. <strong>"Seems fine" is not a measurement.</strong> This lesson gives you a number.</p>
+
+  <h2>Retrieval's unit is the chunk</h2>
+  <p>Retrieval ranks <strong>chunks</strong> — the pieces you embed and hand to the generator. Simon Willison's RAG setup is a working example of the principle: he extracted every paragraph of his blog, embedded each paragraph, and answered questions by retrieving paragraphs. The whole point of chunking is that the answer to a question fits inside <em>one retrievable unit</em>: <a href="https://til.simonwillison.net/llms/embed-paragraphs">"Embedding paragraphs from my blog with E5-large-v2"</a>.</p>
+
+  <h3>Two ways to make chunks</h3>
+  <p><strong>Structure-based</strong> — split on the document's own boundaries: paragraphs, sections, list items. Meaning stays intact, but length varies, and a question whose answer spans two paragraphs needs both to be retrieved.</p>
+  <p><strong>Fixed-size windows</strong> — slide a window of N characters (or tokens) across the text, with <em>overlap</em> so a fact straddling a boundary isn't cut in half. Uniform length, guaranteed coverage — but a window is a blunt instrument: it can glue several unrelated facts together, diluting the context you feed the model.</p>
+  <p class="sidenote"><strong>The hard ceiling.</strong> Your embedding model truncates text at a fixed length — the harness prints it: 256 tokens for <code>all-MiniLM-L6-v2</code> (≈1000 characters, per its <a href="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2">model card</a>). Anything past that is silently dropped, so chunks must stay under it or you're embedding a truncated shadow of the chunk.</p>
+
+  <h3>Every chunk carries its name</h3>
+  <p>Give each chunk an <strong>id</strong> (and eventually a source — which file, which lesson). Retrieval then returns <em>where the answer lives</em>, which is exactly what a citation needs. No id, no provenance, no compliance answer.</p>
+
+  <h2>Measuring retrieval: recall@k</h2>
+  <p>To score retrieval you need a <strong>gold answer</strong>: a question paired with the sentence that <em>must</em> end up in the retrieved context. Then the metric is:</p>
+  <p style="text-align:center; font-family: ui-monospace, monospace;"><strong>recall@k</strong> = (gold chunks found in top-k) / (gold chunks)</p>
+  <p>Measure at the <em>k you will actually feed the generator</em> — retrieving 100 chunks to get a perfect score is cheating yourself.</p>
+  <div class="sidenote"><strong>This is a real field.</strong> The "move from vibe checks to evaluation loops" is the entire pitch of <a href="https://docs.ragas.io/en/stable/">Ragas</a>, the standard open-source framework for evaluating RAG. What you're about to build by hand is the same idea with zero dependencies.</div>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0002/</code> you'll find a tiny corpus — <code>corpus.md</code>, a product brief for <em>Lingua</em>, the language-learning app from your mission — and the harness <code>evaluate.py</code>. The two chunkers and the scoring are small enough to know cold:</p>
+
+  <pre><code>def chunk_by_paragraph(text):
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    return [(f"p{i}", p) for i, p in enumerate(paras)]
+
+def chunk_fixed_size(text, size=600, overlap=120):
+    text = re.sub(r"\s+", " ", text).strip()
+    chunks, start = [], 0
+    while start &lt; len(text):
+        end = min(start + size, len(text))
+        chunks.append((f"f{len(chunks)}", text[start:end]))
+        if end == len(text):
+            break
+        start += size - overlap
+    return chunks</code></pre>
+
+  <p>The gold set pairs each question with the exact sentence that must be retrieved:</p>
+  <pre><code>GOLD = [
+    ("How does the tutor avoid teaching wrong facts?",
+     "The tutor answers only from the course material, never from general knowledge"),
+    ("What does the tutor do when it cannot find an answer?",
+     "the tutor says it does not know rather than guessing"),
+    # ... two more ...
+]</code></pre>
+
+  <p>and the scorer marks a hit when a gold sentence's chunk appears in the top-k:</p>
+  <pre><code>def gold_ids(chunks, sentence):
+    return [cid for cid, text in chunks if sentence in text]
+
+def run_chunker(model, name, chunks, questions):
+    ...
+    for q, gold_sentence in questions:
+        gold = gold_ids(chunks, gold_sentence)
+        order = np.argsort(scores)[::-1][:K]
+        retrieved = [ids[i] for i in order]
+        recall = len(set(retrieved) &amp; set(gold)) / len(gold)</code></pre>
+
+  <ol class="steps">
+    <li>In <code>exercises/lesson0002/</code>, run <code>uv sync</code> then <code>uv run evaluate.py</code>. You should see paragraph chunking score <strong>0.75</strong> and one row flagged <code>&lt;-- miss</code>.</li>
+    <li><strong>Find the miss.</strong> For "What does the tutor do when it cannot find an answer?", the top-3 are <code>p3, p4, p9</code> — all about the tutor and retrieval. The gold chunk <code>p10</code> ("…says it does not know rather than guessing") never surfaces. Read it and the query again: the <em>words</em> of the answer don't appear in the query. Semantic search is not synonym-aware magic — no vocabulary overlap, no hit.</li>
+    <li><strong>Spot the fake 1.00.</strong> Fixed-size 600/120 shows recall 1.00. Look at its chunk count: <em>three</em>. With 3 chunks and k=3, the top-3 always contains everything — the score is vacuous. This is why the measurement only bites when the index is much larger than k. On a real corpus of thousands of chunks, k=3 is a real constraint.</li>
+    <li><strong>Shrink the windows.</strong> Run <code>uv run evaluate.py 300 50</code> then <code>uv run evaluate.py 150 30</code>. Chunk counts rise (5, then 9) and recall falls back to 0.75 — and the <em>same</em> question misses. Chunk size didn't cause this failure, so chunk size can't fix it.</li>
+    <li><strong>Name what you now control.</strong> You can measure any chunker, any k, any corpus. When you swap <code>corpus.md</code> for a real document — a policy text, a grammar reference for Lingua — you'll know in one number whether retrieval is ready for the generator.</li>
+    <li>(Optional) Feed the winning chunks <em>with their ids</em> into the <code>generate()</code> prompt from lesson 1, so the answer cites <code>p10</code> by name. That is a citable answer.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why the miss can't be fixed by overlap, why <code>recall</code> instead of precision, how the 256-token limit interacts with your window size — ask. The point of this lesson isn't the code, it's <em>trusting the number</em>.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Chunking and recall</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Retrieval ranks chunks — the units you embed and hand to the generator. Tokens are a model-internal notion; you never retrieve them.">
+        <p class="q-text">Which unit does retrieval rank?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The chunk</button>
+          <button type="button" class="quiz-option">The model</button>
+          <button type="button" class="quiz-option">The token</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="With three chunks and k=3, the top-3 always contains every chunk — the score is vacuous. Recall only tells you something when the index is much larger than k.">
+        <p class="q-text">Recall 1.0 on a three-chunk index means what?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The scale is small</button>
+          <button type="button" class="quiz-option">The match is exact</button>
+          <button type="button" class="quiz-option">The store is empty</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="The query said 'cannot find an answer' while the answer chunk says 'does not know rather than guessing' — no shared vocabulary. Chunk size, overlap, and windowing can't repair a paraphrase gap.">
+        <p class="q-text">What causes a miss at every chunk size?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">A paraphrase gap</button>
+          <button type="button" class="quiz-option">A chunking error</button>
+          <button type="button" class="quiz-option">A token overflow</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary source for this lesson</p>
+    <p><a href="https://til.simonwillison.net/llms/embed-paragraphs">"Embedding paragraphs from my blog with E5-large-v2" — Simon Willison</a>. The working, production-grade example of paragraph chunking, with a 19,000-chunk index and a one-liner RAG on top. Read it and notice two things you don't have yet: chunk <em>metadata</em> (his ids are <code>entry-paragraph</code>), and the <code>query:</code>/<code>passage:</code> prefixes E5 uses — a model trained to tell questions apart from facts. That second idea is the direction your paraphrase gap points. If you want the evaluation machinery, the <a href="https://docs.ragas.io/en/stable/">Ragas docs</a> are where the grown-up version of this lesson lives.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#chunking">chunking</a>, <a href="../reference/glossary.html#provenance">provenance</a>, <a href="../reference/glossary.html#gold-answer">gold answer</a>, <a href="../reference/glossary.html#recall">recall@k</a>.</p>
+    <p class="next">Next lesson, we fix the miss: <em>hybrid search</em> — running keyword and semantic search side by side, so "cannot find an answer" finds "does not know rather than guessing" — and we move the index out of a Python list into a real store.</p>
+  </footer>
+</main>
+</body>
+</html>
