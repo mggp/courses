@@ -36,6 +36,38 @@
 
   <p id="recall"><strong>Recall@k</strong>: The fraction of gold chunks found in the top-k retrieved chunks, measured at the k you will actually feed the generator. 1.0 on an index smaller than k is vacuous.</p>
 
+  <p id="harness"><strong>Harness</strong>: The runnable measurement rig — corpus loader, chunker, retrieval system, gold set, and recall@k scorer wired into one script (<code>evaluate.py</code>, <code>hybrid.py</code>) that prints the verdict. Its job is to replace "seems fine" with a reproducible number. The name is borrowed from software testing, where a test harness runs a system under test with controlled inputs and reports pass/fail. <em>Avoid:</em> "the script" when you mean the whole rig; "benchmark" when you mean only the gold set plus metric without the runner.</p>
+
+  <h2>Search</h2>
+
+  <p id="dense-search"><strong>Dense search</strong>: Retrieval that embeds every chunk and the query into a fixed-length vector space and ranks by cosine similarity. Called "dense" because the vectors are fully populated (unlike a sparse vector). <em>Avoid:</em> "AI search".</p>
+
+  <p id="sparse-vector"><strong>Sparse vector</strong>: A mostly-zero vector — how keyword search represents a document, with a 1 at each present term's position. The contrast that gives dense search its name.</p>
+
+  <p id="bm25"><strong>BM25</strong>: The classic keyword scorer: for each query term, an inverse-document-frequency weight times a capped term frequency, normalized by document length. Matches exact terms after analysis; blind to paraphrase. <em>Avoid:</em> "fuzzy search".</p>
+
+  <p id="idf"><strong>IDF (inverse document frequency)</strong>: A per-term weight — log((N − df + 0.5)/(df + 0.5) + 1) — rewarding terms that appear in few documents. "Authentication" beats "the".</p>
+
+  <p id="stemming"><strong>Stemming</strong>: Reducing inflected words to a common stem ("reviewed" → "review") so keyword search matches across forms. <em>Avoid:</em> "lemmatization" unless you mean dictionary-based normalization.</p>
+
+  <p id="analysis"><strong>Analysis</strong>: The preprocessing a keyword search applies before matching: lowercasing, stopword removal, stemming.</p>
+
+  <p id="rrf"><strong>Reciprocal rank fusion (RRF)</strong>: Fusing ranked lists by adding 1/(k + rank) per list per document, so a chunk that ranks high in <em>any</em> list accumulates points. Never averages scores — their scales are incomparable.</p>
+
+  <p id="hybrid-search"><strong>Hybrid search</strong>: Running keyword and dense search for the same query and fusing the results, typically with RRF. Each system covers the other's blindness — and fusion can lose a good hit to noise, so it is measured, never trusted.</p>
+
+  <p id="chunk-layer"><strong>Chunk layer</strong>: The pipeline layer where documents are cut into retrievable units. Ruled out as the fix for the paraphrase gap in lesson 2.</p>
+
+  <p id="retrieval-layer"><strong>Retrieval layer</strong>: The pipeline layer where the search step finds chunks. Its fixes: hybrid search (lesson 3), reranking with a cross-encoder, swapping in a query–passage retriever.</p>
+
+  <p id="query-layer"><strong>Query layer</strong>: The pipeline layer where the question is processed before search. Its fix: query rewriting and hypothetical documents (HyDE) — lesson 4.</p>
+
+  <p id="query-rewriting"><strong>Query rewriting</strong> (Rewrite-Retrieve-Read): Prompting an LLM to rephrase the search query before retrieval, to bridge the gap between how users phrase questions and how the corpus phrases facts. From Ma et al., EMNLP 2023. <em>Avoid:</em> "rephrasing" without noting it happens before search.</p>
+
+  <p id="multi-query"><strong>Multi-query expansion</strong> (RAG-Fusion): Generating several rewritten queries, retrieving with each, and fusing the ranked lists with RRF. One strong variant can carry the fusion; weak variants add noise. From Rackauckas, 2024.</p>
+
+  <p id="hyde"><strong>HyDE (hypothetical document embeddings)</strong>: Generating a hypothetical answer passage with an LLM and retrieving by its embedding instead of the query's. The unreal details are filtered by the encoder's dense bottleneck; the passage supplies the corpus's vocabulary. From Gao et al., 2022.</p>
+
   <h2>Model vocabulary</h2>
 
   <p id="embedding-model"><strong>Embedding model</strong>: A model trained to map text (and sometimes images) into a shared vector space. <em>Avoid:</em> "the encoder" unless you are discussing its internals.</p>
@@ -44,7 +76,7 @@
 
   <p id="context-window"><strong>Context window</strong>: The number of tokens a language model can take as input in one call — the reason retrieval must select a few chunks rather than dump a whole corpus in.</p>
 
-  <p id="token"><strong>Token</strong>: A unit of text a model reads and writes — roughly a word fragment, not a word.</p>
+  <p id="token"><strong>Token</strong>: A unit of text a model reads and writes — roughly a word fragment, not a word. WordPiece tokenizers call these units "word pieces": "embedding" is three pieces (<code>em, ##bed, ##ding</code>). <em>Avoid:</em> "word" when you mean token.</p>
 
   <p id="hallucination"><strong>Hallucination</strong>: Confident output that does not match the source material or reality. RAG reduces — it does not eliminate — hallucination.</p>
 
@@ -55,8 +87,8 @@
   <p id="embedding-dimension"><strong>Embedding dimension</strong>: The fixed length of every vector an embedding model emits (e.g. 384 for <code>all-MiniLM-L6-v2</code>).</p>
 
   <h2>Ambiguities resolved in this course</h2>
-  <p>"Retrieval" always means embedding search in this course — never keyword search. When both are combined (hybrid search), it is spelled out explicitly.</p>
-  <p>"Score" always means cosine similarity between two normalized vectors unless a different metric is named.</p>
+  <p>"Retrieval" names the search step generally. "Dense retrieval" and "keyword search" name the two systems; "hybrid search" is their fusion. Where only one system is meant, it is named.</p>
+  <p>"Score" is always qualified by its system: cosine similarity for dense retrieval, the BM25 score for keyword search, the RRF score for a fused list.</p>
 
   <footer class="lesson-footer">
     <p>First written with <a href="../lessons/0001-rag-from-the-ground-up.html">Lesson 1: RAG from the ground up</a>. Revise in place as understanding deepens — never leave a stale definition.</p>

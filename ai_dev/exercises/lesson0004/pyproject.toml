@@ -1,0 +1,10 @@
+[project]
+name = "lesson0004"
+version = "0.1.0"
+description = "Query layer: rewriting, multi-query fusion, and HyDE"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.2",
+    "openai>=3.1.0",
+    "sentence-transformers>=5.7.0",
+]

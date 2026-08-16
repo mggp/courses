@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4: The query stops being sacred — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 4 · Building AI Systems in Python</p>
+    <h1>The query stops being sacred</h1>
+    <p class="lede">Rewriting, expansion, and hypothetical documents — the fixes for the one retrieval failure that survived hybrid search.</p>
+    <p class="meta">~50 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0003-two-eyes-hybrid-retrieval.html">lesson 3</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>At your fintech, the question rarely matches the document. An analyst asks "what happens when a customer can't pay?" — the policy says "the account enters a 30-day arrears workflow." KYC auditors, fraud teams, underwriters: they all phrase things differently from how policies and case notes are written. That gap is the <em>query layer</em>, and this lesson gives you the tools to bridge it — and the honesty to know which tool actually works.</p>
+  </div>
+
+  <h2>The row that beat hybrid search</h2>
+  <p>In <a href="../lessons/0003-two-eyes-hybrid-retrieval.html">lesson 3</a>, every knob you tuned recovered something — except one row. "What does the tutor do when it cannot find an answer?" stayed at 0.00 through dense, BM25, fusion, every chunk size, every k. Not because retrieval was weak: because the question and the answer share <em>no vocabulary at all</em> — "cannot find an answer" vs "does not know rather than guessing". The failure lives in the query, and it has three standard fixes, each named by a paper:</p>
+
+  <h3>Rewrite-Retrieve-Read</h3>
+  <p>Prompt an LLM to <em>rewrite the search query</em> before retrieval. The paper that introduced the name is explicit about the motivation: <a href="https://arxiv.org/abs/2305.14283">"there is inevitably a gap between the input text and the needed knowledge in retrieval"</a> (Ma et al., EMNLP 2023). The basic version is one prompt; the paper's advanced version trains a small rewriter with reinforcement learning from reader feedback — you don't need that to start.</p>
+
+  <h3>Multi-query + RRF (RAG-Fusion)</h3>
+  <p>Generate <em>several</em> rewrites, retrieve with each, and fuse the results with the RRF you built in lesson 3. <a href="https://arxiv.org/abs/2402.03367">RAG-Fusion</a> (Rackauckas, 2024) does exactly this, "the generated queries contextualizing the original query from various perspectives" — with a warning you'll see for yourself: "some answers strayed off topic when the generated queries' relevance to the original query is insufficient."</p>
+
+  <h3>HyDE — hypothetical document embeddings</h3>
+  <p>Instead of rewriting the <em>question</em>, generate a <em>hypothetical answer</em> passage and embed <em>that</em>: <a href="https://arxiv.org/abs/2212.10496">"The document captures relevance patterns but is unreal and may contain false details"</a> (Gao et al., 2022). Then the encoder's dense bottleneck filters the false details — you retrieve by a vector written in the corpus's own words.</p>
+  <p class="sidenote"><strong>The asymmetry, in one sentence.</strong> Rewriting keeps the query's vocabulary; HyDE switches to the answer's vocabulary. When the gap is between question-words and answer-words, the second approach is the more direct attack.</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0004/</code>, <code>query_layer.py</code> reuses the lesson-3 retrieval code and adds the three families. The gold set carries an optional query-layer set — rewrite, variants, and a hypothetical doc — for the hard question:</p>
+  <pre><code>{
+    "rewrite":  "How does the tutor respond when it has no answer?",
+    "variants": [
+        "What happens when the tutor cannot answer a learner's question?",
+        "What does the tutor do if it is unable to answer?",
+        "How does the tutor handle a question it cannot answer?",
+        "How does the tutor respond when it has no answer?",
+        "What happens when no answer can be found for the learner's question?",
+    ],
+    "hyde": "If no chunk is close enough, the tutor says it does not know rather than guessing.",
+}</code></pre>
+  <p>These strings are what a good LLM rewriter produces for this question — you'll regenerate them with your own model in the optional step. The harness runs four strategies per question: <code>raw</code>, <code>rewrite</code>, <code>multi</code> (RRF over all variants), and <code>hyde</code>.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code> then <code>uv run query_layer.py</code>. You should see the aggregate: <strong>raw 0.83, rewrite 1.00, multi 0.83, hyde 1.00</strong> — and the hard row reading <code>0.00 / 1.00 / 0.00 / 1.00</code>.</li>
+    <li><strong>Read the surprise.</strong> The <code>multi</code> column did <em>not</em> rescue the paraphrase row — fusing all five variants put the gold chunk at fused rank 4, just outside k=3. RAG-Fusion's paper warned you: weak variants are not neutral, they are noise.</li>
+    <li><strong>Read the fragility table.</strong> The harness prints the fused rank of the gold chunk per variant: <code>7, 3, 6, 3, 6</code> — two hits, three misses. A single rewrite works only when its phrasing lands, and <em>you cannot know which phrasing will land in advance</em>. (The <code>rewrite</code> column is therefore an oracle: the best variant, picked after the fact.)</li>
+    <li><strong>One strong ballot carries the fusion.</strong> In <code>GOLD</code>, add the <code>hyde</code> doc as a sixth item in <code>variants</code>, re-run, and watch <code>multi</code> flip to 1.00. The fusion succeeds the moment a genuinely strong variant is in the set — which is exactly why RAG-Fusion quality hinges on the generator's rewrites.</li>
+    <li><strong>Confirm it wasn't the fusion weighting.</strong> Run <code>uv run query_layer.py 3 10</code> — a steeper RRF doesn't rescue <code>multi</code> with the original five variants. The failure was signal, not the constant.</li>
+    <li><strong>Why HyDE wins here.</strong> Its hypothetical doc is written in the answer's own words ("does not know rather than guessing"), so its embedding lands on the right chunk at rank 1 — every time, on this row. It converts the query-answer asymmetry into the corpus's language instead of hoping a rewrite stumbles onto it.</li>
+    <li>(Optional) <strong>Make it real.</strong> With an API key set (<code>OPENAI_API_KEY</code>, optionally <code>OPENAI_BASE_URL</code>), run <code>uv run query_layer.py --live</code> — the harness calls an LLM to generate the rewrites and hypothetical docs, then re-runs all four strategies. Compare its rewrites to the canned ones, and see whether its <code>multi</code> column carries the row.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why "multi" can lose to its own variants, why a steeper RRF k didn't help, what HyDE's "dense bottleneck filters false details" actually means — ask. And if you run <code>--live</code>, bring me the LLM's rewrites: comparing real output to the canned set is the best practice available.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · The query layer</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="HyDE asks an LLM for a hypothetical answer passage and embeds that instead of the query — the passage uses the corpus's own vocabulary, which is why the paraphrase row finally retrieves.">
+        <p class="q-text">Which family embeds a hypothetical answer?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The HyDE family</button>
+          <button type="button" class="quiz-option">The dense model</button>
+          <button type="button" class="quiz-option">The query model</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Rewrite-Retrieve-Read rewrites the search query before retrieval — the query layer, the third of the three fix layers you mapped in lesson 3.">
+        <p class="q-text">Rewrite-Retrieve-Read fixes which layer?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The query layer</button>
+          <button type="button" class="quiz-option">The chunk layer</button>
+          <button type="button" class="quiz-option">The token layer</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Multi-query fusion only landed once a genuinely strong variant was in the ballot set — adding the HyDE doc flipped it. You can't know which variant is strong in advance, which is why you measure.">
+        <p class="q-text">What carries a fused multi-query result?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">A strong variant</button>
+          <button type="button" class="quiz-option">The best rewrite</button>
+          <button type="button" class="quiz-option">The chosen query</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p><a href="https://arxiv.org/abs/2305.14283">"Query Rewriting for Retrieval-Augmented Large Language Models" — Ma et al., EMNLP 2023</a> is the anchor: it names the query-answer gap and the rewrite-retrieve-read pipeline, and its trainable rewriter is what production systems evolve toward. Its two siblings complete the trio: <a href="https://arxiv.org/abs/2402.03367">RAG-Fusion</a> (multi-query + RRF, with an honest caveat about off-topic variants) and <a href="https://arxiv.org/abs/2212.10496">HyDE</a> (the hypothetical-document paper). Read the abstracts, then the sections on their failure modes — each paper admits exactly the weakness you measured today.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#query-layer">query layer</a>, <a href="../reference/glossary.html#query-rewriting">query rewriting</a>, <a href="../reference/glossary.html#multi-query">multi-query expansion</a>, <a href="../reference/glossary.html#hyde">HyDE</a>.</p>
+    <p class="next">The retrieval spine is complete — chunk layer (lesson 2), retrieval layer (lesson 3), query layer (this lesson). Next, the generator stops being trusted on faith either: <em>faithfulness evaluation</em> of the answers the model actually writes, and then the capstone — a grounded answer system with citations you can audit.</p>
+  </footer>
+</main>
+</body>
+</html>

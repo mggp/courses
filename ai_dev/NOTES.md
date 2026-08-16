@@ -25,3 +25,42 @@
 - Uses `uv` for project setup (`pyproject.toml` + `uv sync`/`uv run`), not plain pip/venv. Put runnable exercises in `exercises/lessonNNNN/` with a `pyproject.toml` and keep the lesson code linked there.
 - Followed lesson 1's exercise and took the harder path himself: chose the paraphrase-hard question and raised k to 4. Reward initiative — teach to the level he reaches for, not the level he was given.
 - His lesson-1 run produced a perfect launchpad for lesson 2: the answer chunk ranked 3rd (0.133) behind a keyword win (0.583). Real numbers from his own machine are the strongest teaching material available.
+
+## Observed preferences (session 3)
+
+- Catches oversimplifications and asks "but *why*?" at the mechanism level (e.g. "shouldn't chunk/answer/citation be related?"). Answer with the actual mechanism plus empirical demonstration on his own corpus — he verifies claims by running things. When a lesson's explanation is incomplete, fix the lesson, not just the answer.
+- He engages with the theory of the field (embeddings, retrieval quality) — keep lessons grounded in how production systems actually behave, with primary sources, and stay honest when a fix is partial (cross-encoder lifted the miss to rank 2, didn't eliminate it).
+
+## Session 4 signal: hybrid search needs first-principles teaching
+
+Asked "I don't understand the description for the hybrid search. Add some context." — he has **no information-retrieval background**: BM25, tf-idf, RRF, "dense" vs "sparse" are all new vocabulary. Lesson 3 must define each term from zero (dense = what he already built; BM25 = classic keyword scoring, tf×idf intuition via corpus words like "authentication"; RRF = combine *ranks* not scores, election metaphor), and must be honest that hybrid did NOT rescue the lesson-2 miss on his corpus (both systems + fused all miss p10 — demo in `exercises/lesson0002/hybrid_demo.py`); the fix for that specific gap is query rewriting/HyDE, while hybrid is for covering complementary blind spots across many queries. Preserve the honest demo results rather than overselling fusion.
+
+## Lesson 3 design decisions (session 5)
+
+- Gold set built **data-driven**: expanded Lingua corpus to 24 paragraphs, then empirically selected gold questions so the aggregate tells the story — dense 0.67, bm25 0.67, fused 0.83, with the paraphrase row surviving everything (and recovering only at k=5 of 24, which is a scale artifact worth teaching). Also includes a "make fusion lose" noise query ("What stops old vocabulary from being forgotten?", junk bm25 matches via "vocabulary"/"being") so the compromise is taught honestly.
+- Worked RRF example captured for the lesson: engine query p22 0.0315 vs p2 0.0313 — a two-thousandths margin. Teaches why you measure.
+- At k=5 the paraphrase row resolves via BM25's weak "tutor" match — k on a toy corpus is forgiving; on a real index it isn't. Keep flagging the lesson-2 scale caveat every time k changes.
+
+## Profile corrections (session 6) — IMPORTANT
+
+- **Stack**: employer does NOT use Postgres; his background is MySQL and DynamoDB (limited Postgres). Never claim a specific production stack; frame DB-specific recipes (pgvector) as mechanics, not environment facts.
+- **Short-term fintech use cases**: fraud detection, KYC auditing, loan underwriting, credit risk assessment, document Q&A. He is not a product person — the list will grow, and he explicitly wants suggestions of other relevant directions.
+- **Lingua**: invented specifics are fine only if framed as hypothetical (the app doesn't exist).
+- **Curriculum fork**: the use-case list splits into retrieval problems (KYC auditing, document Q&A — served by the RAG spine) and prediction problems (fraud detection, loan underwriting, credit risk — will want a future lesson on LLM-as-classifier / structured-data classification / anomaly detection). Propose the prediction track once the retrieval spine (through grounded-answer evaluation) is done.
+- Lesson 3 rewritten to be stack-agnostic; all code/corpus/gold reused unchanged.
+
+## Vocabulary: three fix-location layers (session 7)
+
+The user asked what "layer-3" meant in lesson 3 — it was undefined loose phrasing on my part. The coherent model, now explicit in lesson 3, the glossary, and here: retrieval-quality fixes live in three pipeline layers — **chunk layer** (document cutting; ruled out in lesson 2), **retrieval layer** (the search step; hybrid search, cross-encoder reranking, better retrievers), **query layer** (question phrasing; query rewriting / HyDE). Use this vocabulary consistently: lesson 4 is the query-layer fix. Never introduce numbered jargon without defining it.
+
+## Step-5 fix (session 7)
+
+The user flagged lesson-3 step 5 as incomprehensible: the query was called "gold-less" when its answer (p5) was always in the corpus (it is gold question 6's chunk), and `hybrid.py` had no way to run an arbitrary query, so the step wasn't executable. Fixed: added `--query` / `--gold` CLI mode to the harness (self-checking recall per system), and rewrote the step to explain that "gold-less" meant "not among the six gold questions", that the answer is judged by reading p5 / the `--gold` flag, and that rankings are deterministic for a fixed corpus but shift if text changes — the reason to re-measure. Rule: every lesson step must be runnable by the exact commands it prints.
+
+## Terminology discipline (session 7)
+
+The user challenged "harness" — used 7 times across lessons 2–3 but absent from the glossary. Defined it precisely (the runnable measurement rig, not "the script"), disambiguated from gold set / metric / benchmark, and added it to the glossary. Rule: any term used repeatedly across lessons must be in the glossary, with an agreed definition; prefer plain language and only coin/reuse jargon with the learner's buy-in.
+
+## Session 8: literature contributor + lesson-4 design
+
+The user found and proposed two papers unprompted (2305.14283 query rewriting, 2402.03367 RAG-Fusion), completing lesson 4's trio with HyDE. Reward this: assign abstract-reading as prep, and treat his paper finds as curriculum input. Lesson-4 empirical design: multi-query RRF *failed* on the paraphrase row (fused rank 4, even at RRF k=10) while hyde hit rank 1 and the best single rewrite hit rank 3 — the lesson teaches this honestly and shows that adding the hyde doc as a variant flips multi (one strong ballot carries the fusion). `--live` mode regenerates rewrites via the learner's own LLM (OPENAI_API_KEY/BASE_URL/MODEL). Retrieval spine complete; next: faithfulness evaluation of generated answers (Ragas), then capstone app.

@@ -1,0 +1,7 @@
+# Lesson 4 delivered: the query layer, with the learner as literature contributor
+
+The learner found and proposed two relevant papers unprompted — "Query Rewriting for Retrieval-Augmented LLMs" (arXiv:2305.14283) and "RAG-Fusion" (arXiv:2402.03367) — which completed the three query-layer families alongside HyDE (arXiv:2212.10496). Lesson 4 built `query_layer.py` reusing the lesson-3 retrieval code, with four strategies per gold question (raw / rewrite / multi / hyde) and a `--live` mode that regenerates rewrites with the learner's own LLM.
+
+**Evidence**: empirical runs on the Lingua corpus. The paraphrase row ("cannot find an answer") went 0.00 raw → 1.00 rewrite (best variant), **0.00 multi** (fused rank 4 — RRF over all five variants failed, even at steeper k), 1.00 hyde (rank 1). Variant-level fragility: fused ranks 7, 3, 6, 3, 6 — two hits, three misses. Adding the hyde doc as a sixth variant flipped multi to a hit (rank 3): one strong ballot carries the fusion.
+
+**Implications**: The learner reads the literature and proposes sources — reward and build on this (assign abstract-reading as preparation). The honest multi-query failure is a feature of the lesson, not a bug: it teaches that RAG-Fusion's caveat is real and that query-layer reliability must be measured per family. The retrieval spine (chunk → retrieval → query) is complete; next is faithfulness evaluation of generated answers, then a capstone grounded-answer app with citations.
