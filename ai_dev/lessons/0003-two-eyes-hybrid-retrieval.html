@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3: Two eyes — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 3 · Building AI Systems in Python</p>
+    <h1>Two eyes: hybrid retrieval</h1>
+    <p class="lede">One retrieval system has one blindness. Run two systems with <em>different</em> blindnesses side by side, fuse their results, and measure whether the sum beats either part.</p>
+    <p class="meta">~50 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0001-rag-from-the-ground-up.html">lesson 1</a> &nbsp;·&nbsp; <a href="../lessons/0002-make-retrieval-honest.html">lesson 2</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Strip the fintech problems you named — fraud detection, KYC auditing, loan underwriting, credit risk, document Q&amp;A — down to the mechanical core and they share one engine: <em>find the right record among millions.</em> A suspicious transaction narrative against known fraud patterns. An onboarding file against prior audits. An application against precedent decisions. That is retrieval, and the measurement rules in this lesson hold no matter which store you run — MySQL, DynamoDB, Postgres, or a separate index. (For Lingua, still hypothetical, every point of recall is a learner who gets the right lesson cited instead of a near-miss.) The lesson-2 harness becomes the referee: <em>you will not trust fusion on faith.</em></p>
+  </div>
+
+  <h2>Where lesson 2 left you</h2>
+  <p>In <a href="../lessons/0002-make-retrieval-honest.html">lesson 2</a> you discovered that your embedding model ranks on <em>surface form</em>: for "cannot find an answer" the winners shared literal words ("cannot", "answers") while the true chunk sat at rank 4, and the paraphrase gap survived every chunk size. You also mapped where a fix can live, in three pipeline layers: the <em>chunk layer</em> (how documents are cut — ruled out there), the <em>retrieval layer</em> (how the search step finds chunks), and the <em>query layer</em> (how the question itself is phrased). This lesson builds the first fix in the <em>retrieval layer</em>: a second, differently-blind eye. The query layer belongs to lesson 4.</p>
+
+  <h2>Two eyes, two blindnesses</h2>
+  <p><strong>Dense search</strong> — what you've built. Every chunk becomes a fixed-length vector; you rank by cosine similarity. Sees <em>meaning</em>, misses <em>exact words</em>: the "engine" query from your new gold set ranks the right chunk 8th because the answer's other words don't match.</p>
+  <p><strong>Keyword search</strong> — the classic scorer, BM25, Elasticsearch's default for 25 years. Sees <em>exact words</em> (after analysis), misses <em>meaning</em>: "long-term recall sharp" shares no word with "spaced repetition", so it scores zero.</p>
+  <p>They are mirror-image systems. Feed a query to both and let each cover the other's blindness — but <em>measure</em> that it actually does.</p>
+
+  <h3>BM25, from first principles</h3>
+  <p>Before scoring, text passes through <strong>analysis</strong>: lowercasing and <strong>stemming</strong>, so "reviewed" and "review" become the same token. Then each query term contributes:</p>
+  <pre><code>score = IDF * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * doclen / avg_doclen))
+
+IDF  = log((N - df + 0.5) / (df + 0.5) + 1)   # rare terms matter more
+tf   = times the term appears in the doc        # capped by k1=1.5
+b    = length normalization (0.75)              # short docs aren't punished</code></pre>
+  <p class="sidenote"><strong>Read the IDF.</strong> In your corpus, "authentication" appears in one document out of 24 → matching it is almost proof of relevance. "the" appears everywhere → IDF ≈ 0. This is why keyword search is brilliant at jargon and hopeless at paraphrase. BM25 is the 1990s probabilistic relevance framework and still the default wherever text search ships — Elasticsearch, Postgres full-text search, MySQL FULLTEXT indexes. <em>Where</em> the index lives is a stack decision; the scoring is the same.</p>
+
+  <h3>Why you can't just average the scores</h3>
+  <p>BM25 scores (roughly 0–10) and cosine similarities (0–1) live on different scales and distributions — averaging silently lets one system dominate. <strong>RRF (reciprocal rank fusion)</strong> throws scores away and votes by <em>rank</em>:</p>
+  <pre><code>def rrf(lists, k=60):
+    out = {}
+    for ranked in lists:               # one list per system
+        for rank, doc_id in enumerate(ranked, start=1):
+            out[doc_id] = out.get(doc_id, 0.0) + 1.0 / (k + rank)
+    return out</code></pre>
+  <p>Think of an election: each system is a voter, and a chunk that places high on <em>either</em> ballot accumulates points. The 60 softens the gap between adjacent ranks — you'll tune it.</p>
+  <p class="sidenote"><strong>What does the 60 actually do?</strong> RRF's k is a <em>rank-damping constant</em> — RRF never sees scores, so k is not in any score's units (it is not "close to the BM25 scale" or anything else; it's scale-free). It sets how steeply reward falls off within one list: rank 1 vs rank 10 drops 90% at k=0, 45% at k=10, 13% at k=60, under 1% at k=1000. Small k: each system's top pick dominates the fusion. Large k: position barely matters and the score approaches "how many lists you appear in." k=60 is the robust default from the original RRF paper (Cormack et al., 2009) — standard, not sacred.</p>
+
+  <p class="sidenote"><strong>Where this lives in your stack.</strong> On Postgres you'd use pgvector for the dense half; on MySQL or DynamoDB you'd typically keep vectors in a dedicated index or a managed search/vector service and join by record key. The fusion math is exactly what those services call "hybrid search" under the hood — you're learning the recipe before renting the appliance.</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0003/</code> the corpus is a fuller product brief for Lingua — still hypothetical, every specific illustrative — at 24 paragraphs, and <code>hybrid.py</code> extends lesson 2's harness with BM25 and RRF. The gold set deliberately contains each failure class:</p>
+  <pre><code>GOLD = [
+    ("How does the tutor avoid teaching wrong facts?",  "The tutor answers only from the course material..."),
+    ("When will a word be reviewed next?",              "The scheduler computes the next review date"),
+    ("What does the tutor do when it cannot find an answer?", "the tutor says it does not know rather than guessing"),
+    ("Which engine suggests the next lesson?",          "suggests new lessons based on recently missed words"),
+    ("What method keeps long-term recall sharp?",       "Spaced repetition schedules the review of each word..."),
+    # ...
+]</code></pre>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code> then <code>uv run hybrid.py</code>. You should see the three columns disagree and the story in the averages: <strong>dense 0.67, bm25 0.67, fused 0.83</strong>.</li>
+    <li><strong>Read the disagreement rows.</strong> "Which engine suggests the next lesson?": dense missed it (the right chunk ranked 8th), bm25 nailed it (rank 1), and <em>fused recovered it</em>. "What method keeps long-term recall sharp?": the mirror — bm25 scored zero, dense nailed it, fused kept it. And "cannot find an answer": all three miss — the paraphrase wall stands.</li>
+    <li><strong>Work the fusion by hand.</strong> For the engine query, p22 is 6th in dense and 1st in bm25: <code>1/(60+6) + 1/(60+1) = 0.0315</code>. Its rival p2 is 3rd in dense and 5th in bm25: <code>1/(60+3) + 1/(60+5) = 0.0313</code>. p22 wins by <em>two thousandths</em>. That margin is the whole reason you measure.</li>
+    <li><strong>Turn the knob.</strong> Run <code>uv run hybrid.py 3 10</code> — with RRF k=10 the recovery margin grows (p22 gets <code>1/11 ≈ 0.09</code>). Now run <code>uv run hybrid.py 5 60</code> — even the paraphrase row is found and fused hits 1.00. Why? k=5 on a 24-chunk index is 20% of the corpus: BM25's weak "tutor" match finally enters the context. That is not recall, it is a toy-corpus artifact — the lesson-2 scale caveat again.</li>
+    <li><strong>Make fusion lose.</strong> Leave the gold set and explore one query of your own:
+    <code>uv run hybrid.py --query "What stops old vocabulary from being forgotten?" --gold "Spaced repetition schedules the review of each word at growing intervals"</code>.
+    Nothing was added to the corpus for this — the correct answer is <em>already there</em>: paragraph <code>p5</code>, the very chunk gold question 6 targets. ("Gold-less" only meant this question isn't among your six; you judge the answer by reading <code>p5</code>, and the <code>--gold</code> flag checks it for you.) Rankings are deterministic for a fixed corpus and model, so you should reproduce exactly this: dense ranks <code>p5</code> second (recall 1.00), bm25 finds only junk — <code>p1</code> via "vocabulary", <code>p7</code> via "being" — and the fused top-3 crowds <code>p5</code> out (recall 0.00). Fusion is a compromise: one voter's noise can bury the other's good hit. That is exactly why you truncate the ballots, weigh the voters, and re-measure. And note the corollary: if you add or change corpus text, these rankings will shift — which is precisely what the harness exists to catch.</li>
+    <li><strong>Name what survives.</strong> The one row that no knob fixes is the paraphrase row — neither system shares any word or meaning with "says it does not know rather than guessing." That failure lives in the <em>query</em>, not the index, and it is the next lesson's target.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>The IDF formula, why stemming changes the verdict, what k=60 does to a rank gap, why the noise query wins its slot — ask. And if a step's numbers don't match yours, bring me the output: that discrepancy is the most valuable thing you'll produce today.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Hybrid retrieval</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Dense embeddings rank by overall meaning, so a query full of rare exact terms can rank the right chunk 8th. BM25's whole job is to reward those exact terms.">
+        <p class="q-text">Which search fails on exact jargon?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The vector search</button>
+          <button type="button" class="quiz-option">The hybrid search</button>
+          <button type="button" class="quiz-option">The sparse search</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="BM25 scores and cosine similarities live on different scales and distributions — averaging them makes one system dominate. Ranks are comparable across systems, so RRF votes by rank.">
+        <p class="q-text">Why does RRF fuse ranks, not scores?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The scales differ</button>
+          <button type="button" class="quiz-option">The ranks combine</button>
+          <button type="button" class="quiz-option">The scores differ</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="The paraphrase gap shares words with neither system, so both miss it and fusion can't invent a hit. The synonym and keyword cases are exactly the ones hybrid rescues.">
+        <p class="q-text">Which failure defeats hybrid search?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">A paraphrase gap</button>
+          <button type="button" class="quiz-option">The synonym case</button>
+          <button type="button" class="quiz-option">The keyword miss</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary source for this lesson</p>
+    <p><a href="https://github.com/pgvector/pgvector">pgvector — open-source vector search for Postgres</a>. Its README is the canonical worked example of this lesson's recipe: full-text search and vector search in one database, fused with <a href="https://github.com/pgvector/pgvector-python/blob/master/examples/hybrid_search/rrf.py">reciprocal rank fusion</a> or a cross-encoder — with the honesty you now expect: you still have to evaluate. You don't run Postgres, so read it for the <em>mechanics</em>, not the stack: the same math appears in dedicated vector stores and managed search services. For the theory behind BM25, the term traces to Robertson &amp; Zaragoza's probabilistic relevance framework (2009); the pgvector example is the better read first.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#dense-search">dense search</a>, <a href="../reference/glossary.html#bm25">BM25</a>, <a href="../reference/glossary.html#idf">IDF</a>, <a href="../reference/glossary.html#stemming">stemming</a>, <a href="../reference/glossary.html#rrf">reciprocal rank fusion</a>, <a href="../reference/glossary.html#hybrid-search">hybrid search</a>.</p>
+    <p class="next">Next lesson, the query stops being sacred: <em>query rewriting and hypothetical documents (HyDE)</em> — the fix for the one row that survives hybrid search, demonstrated on your own corpus.</p>
+  </footer>
+</main>
+</body>
+</html>

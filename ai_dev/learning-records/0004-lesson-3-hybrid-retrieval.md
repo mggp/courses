@@ -1,0 +1,7 @@
+# Lesson 3 delivered: hybrid retrieval, with an honest compromise framing
+
+The hybrid-search lesson was built with a **data-driven gold set** on an expanded 24-paragraph Lingua corpus, selected empirically so the aggregate states the exact truth rather than a flattering one: dense 0.67, bm25 0.67, fused 0.83 recall@3. The three rows the gold set encodes: a query only BM25 can find (dense ranked the gold 8th; fusion recovered it), a query only dense can find (BM25 scored zero on "long-term recall sharp"; fusion kept it), and the lesson-2 paraphrase row that survives all three systems — recoverable only at k=5 of 24 chunks, which is a scale artifact, not recall.
+
+**Evidence**: gold-set tuning runs (`exercises/lesson0003/hybrid.py`); the worked RRF margin for the engine query (p22 0.0315 vs p2 0.0313 — two thousandths); the noise-regression query ("What stops old vocabulary from being forgotten?") where fused drops a dense rank-2 hit to rank 4 via BM25's junk matches ("vocabulary"→p1, "being"→p7).
+
+**Implications**: The learner now has both retrieval systems and a fusion primitive, plus the habit of measuring every knob. The paraphrase row surviving hybrid search confirms the curriculum spine: lesson 4 = query rewriting / HyDE (paper already verified), which empirically lifts the miss to rank 1. Also reinforced: on toy corpora, "bigger k rescues everything" is an artifact — always re-flag the scale caveat when k changes.
