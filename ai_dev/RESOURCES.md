@@ -22,6 +22,22 @@
   Multi-query generation fused with RRF, applied in industry, with an honest caveat about off-topic variants. Use for: lesson 4's multi-query family.
 - [Paper: "Precise Zero-Shot Dense Retrieval without Relevance Labels" (HyDE) — Gao et al. (arXiv:2212.10496)](https://arxiv.org/abs/2212.10496)
   The hypothetical-document-embeddings paper: generate a plausible answer, embed it, retrieve by it; the encoder filters the false details. Use for: lesson 4's HyDE family.
+- [Paper: "RAGAS: Automated Evaluation of Retrieval Augmented Generation" — Es et al. (arXiv:2309.15217)](https://arxiv.org/abs/2309.15217)
+  Reference-free evaluation framework spanning retrieval, faithfulness, and generation quality. Its faithfulness recipe (claims → inferable-from-context → supported/total) is the anchor for lesson 5. Use for: faithfulness evaluation, any RAG evaluation discussion.
+- [Paper: "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation" — Min et al., EMNLP 2023 (arXiv:2305.14251)](https://arxiv.org/abs/2305.14251)
+  Decomposes a generation into atomic facts and scores each against a knowledge source; ChatGPT only reaches 58%. The conceptual parent of faithfulness-as-decomposition. Use for: lesson 5's decompose step.
+- [Docs: Ragas — Faithfulness metric](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/)
+  The canonical worked definition: identify claims, check each is inferable from context, score = supported/total, with the Einstein 0.5 example. Use for: lesson 5's score step and citation.
+- [Model card: cross-encoder/nli-MiniLM2-L6-H768](https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768)
+  The local NLI cross-encoder used in lesson 5 (82M params, SNLI + MultiNLI; labels contradiction / entailment / neutral). Small enough for ordinary hardware. Use for: the entailment check, the three-label distinction.
+- [Paper: "Passage Re-ranking with BERT" — Nogueira & Cho (arXiv:1901.04085)](https://arxiv.org/abs/1901.04085)
+  The origin of the reranking stage: BERT over the top candidates, +27% MRR@10 on MS MARCO. Use for: lesson 6, any two-stage retrieval discussion.
+- [Model card: cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
+  The local relevance cross-encoder used in lesson 6 (22.7M params, MS MARCO passage ranking, MRR@10 39.01). Documents that the score is uncalibrated — only the order matters — and links SBERT.net's "Retrieve & Re-rank" guide. Use for: the rerank stage, the pool-size tradeoff.
+- [Docs: Ragas — Context Precision](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_precision/)
+  The canonical definition of the noise metric: precision@k averaged over ranks, rank-weighted. Use for: precision@k / context precision, the "how much of the retrieved set is noise" question, and its sibling Context Recall.
+- [Paper: "Lost in the Middle: How Language Models Use Long Contexts" — Liu et al., TACL 2023 (arXiv:2307.03172)](https://arxiv.org/abs/2307.03172)
+  The caveat that keeps rank from being fully irrelevant to a generator: relevant info at the start or end of context is used best; performance degrades in the middle of long contexts. Use for: the "raise k vs rerank" tradeoff, why order still matters a little at large k.
 
 ## Wisdom (Communities)
 
@@ -34,5 +50,7 @@
 
 ## Gaps
 
-- No verified high-trust resource yet on **evaluation of generated answers** (faithfulness/groundedness of the text the model writes, not just retrieval recall) — the subject of the next lesson. Ragas covers it; verify a hands-on guide before turning it into a lesson.
+- No verified high-trust resource yet on **the full evaluation loop at scale** (Ragas as a framework, HHEM-2.1-Open as an alternative hallucination classifier, and running metrics in CI) — worth verifying before the capstone lesson adds a citation-backed grounded answer.
 - Query-rewriting/HyDE coverage is now closed (lesson 4 + three verified papers); a practitioner write-up with a runnable example would still be a nice complement but is no longer blocking.
+- Retrieval-metric coverage is now closed (recall@k, precision@k/context precision, MRR, NDCG, and the set-vs-rank rule all have glossary entries and sources; see LR-0009).
+- The capstone (a grounded-answer app with citations) will want a verified practitioner guide on building a citation/attribution UI or an evaluation dashboard — not yet sourced.

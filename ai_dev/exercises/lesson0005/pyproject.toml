@@ -1,0 +1,10 @@
+[project]
+name = "lesson0005"
+version = "0.1.0"
+description = "Faithfulness: is the generated answer grounded in the retrieved context?"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.2",
+    "openai>=3.1.0",
+    "sentence-transformers>=5.7.0",
+]

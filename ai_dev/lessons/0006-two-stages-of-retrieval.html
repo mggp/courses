@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 6: Two stages of retrieval — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 6 · Building AI Systems in Python</p>
+    <h1>Two stages of retrieval</h1>
+    <p class="lede">Recall is cheap and blind. Reranking is expensive and sharp. Production retrieval is both, in that order.</p>
+    <p class="meta">~40 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0005-the-generator-stops-being-trusted.html">lesson 5</a> &nbsp;·&nbsp; <a href="../lessons/0003-two-eyes-hybrid-retrieval.html">lesson 3</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Your fintech document Q&amp;A has a silent failure mode that lessons 3 and 4 did not close: the right policy chunk comes back <em>fifth</em>, and the generator only reads the top three. Retrieval "worked" — recall counted it a miss. Reranking fixes the <em>ordering</em> without anyone rewriting the question. This is the last retrieval-layer tool, and it is the one production systems bolt on first, because it is the highest-leverage single change you can make.</p>
+  </div>
+
+  <h2>Recall and rerank: two stages, two prices</h2>
+  <p>Everything you built in lessons 1–4 was <strong>recall</strong>: two systems — the dense <a href="../reference/glossary.html#bi-encoder">bi-encoder</a> and the lexical <a href="../reference/glossary.html#bm25">BM25</a> — scoring every chunk, fused with RRF. The bi-encoder is cheap because every chunk is embedded once and compared with a dot product — but the two texts never see each other, so a paraphrase like "cannot find an answer" vs "does not know rather than guessing" is invisible to it. BM25 is blind the other way: it only matches literal (stemmed) words. The fix is a second stage:</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Recall</span><span class="node-sub">bi-encoder + BM25, RRF — cheap, whole corpus, returns top-N</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Rerank</span><span class="node-sub">cross-encoder — reads each pair together, re-orders the top-N</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Generate</span><span class="node-sub">top-k reaches the model</span></span>
+  </div>
+  <p>A <a href="../reference/glossary.html#cross-encoder">cross-encoder</a> reads the query and a passage <em>as one input</em>, attends token-to-token, and emits a single relevance score. It sees "cannot find an answer" ⇄ "does not know rather than guessing" because both phrases are in front of it at once. The price: no precomputation — one model pass per candidate. So you recall with the cheap stage, then rerank only the top-N. This two-stage shape is the canonical design, from the paper that invented it: <a href="https://arxiv.org/abs/1901.04085">"Passage Re-ranking with BERT"</a> (Nogueira &amp; Cho, 2019) — BERT over the top candidates, +27% MRR@10 on MS MARCO.</p>
+
+  <h2>Why the recall stage missed — recapped</h2>
+  <p>This closes the loop on the diagnosis you ran in lesson 2. The bi-encoder <code>all-MiniLM-L6-v2</code> pools by averaging token vectors, so the gold chunk's distinctive words ("does not know", "guessing") contribute a whisper against the shared grammatical scaffolding, and the model ranks on token overlap rather than meaning. The cross-encoder is not subject to that pooling loss — it scores the relationship directly, which is why a <em>generic relevance</em> reranker, with no query rewriting and no domain tuning, can lift the miss that survived hybrid search and multi-query fusion.</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0006/</code>, <code>rerank.py</code> reuses the lesson-3 retrieval code (chunking, BM25, RRF, dense) and adds one stage: take the fused top-N and re-sort it with <code>cross-encoder/ms-marco-MiniLM-L6-v2</code> (22.7M params, trained on MS MARCO passage ranking, MRR@10 of 39.01 — see its <a href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">model card</a>). The gold set is the same six questions as lessons 3–4.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run rerank.py</code>. You should see the mean jump from <strong>fused 0.83 → reranked 1.00</strong>, with the paraphrase row reading <code>0.00 / 1.00</code>.</li>
+    <li><strong>Watch the reorder.</strong> Run <code>uv run rerank.py --query "What does the tutor do when it cannot find an answer?" --gold "the tutor says it does not know rather than guessing"</code>. Fused top-3 is <code>p2 p3 p4</code> — gold <code>p9</code> sits at rank 5. Reranked top-3 is <code>p3 p2 p9</code> — the cross-encoder pulled <code>p9</code> to rank 3. No query was rewritten; the paraphrase became visible.</li>
+    <li><strong>Read the scores honestly.</strong> The cross-encoder gives <code>p3 3.65</code>, <code>p2 0.09</code>, <code>p9 −2.14</code>, <code>p4 −4.90</code>. Two lessons here: the absolute values are <em>uncalibrated</em> — negative scores are normal, only the order matters. And <code>p9</code> clears <code>p4</code> by ~2.8 points yet still only reaches <strong>rank 3</strong>, the very edge of k=3. The reranker still prefers <code>p3</code> ("answers only from the course material") — this is a rescue, not a slam dunk.</li>
+    <li><strong>Recall is the floor.</strong> Run <code>uv run rerank.py 3 3</code> — a rerank pool of 3. Gold <code>p9</code> is at fused rank 5, so it never reaches the reranker, and the row stays <code>0.00</code>. Reranking can only re-order what recall hands it. This is why you measure the recall stage's <em>candidate pool</em>, not just its top-k.</li>
+    <li><strong>The reranker has its own blind spots.</strong> Run <code>uv run rerank.py 3 24</code> — rerank the whole corpus. The paraphrase row is rescued, but the "long-term recall sharp" row <em>drops</em> (gold <code>p5</code> falls from rank 1 to rank 4): over the long tail of irrelevant chunks the cross-encoder's scores bunch up near −11.2, and three junk chunks (GDPR, daily streak, 2FA) sneak above the right one. Net mean is back to 0.83 — one row traded for another. Reranking a short candidate list sharpens recall; reranking everything reintroduces the cross-encoder's own errors.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why the cross-encoder's absolute score means nothing, why reranking the whole corpus <em>loses</em> a row it already had, what "recall is the floor" implies for how you pick the pool size N, or how reranking interacts with the query-layer fixes from lesson 4 — ask. And try a question of your own with <code>--query</code>: the reorder is the lesson.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Reranking</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="The cross-encoder reads the query and passage together and emits one relevance score per candidate — uncalibrated, so only the order matters.">
+        <p class="q-text">What does the cross-encoder produce per candidate?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">One relevance score</button>
+          <button type="button" class="quiz-option">One relevance layer</button>
+          <button type="button" class="quiz-option">One relevance index</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="The cross-encoder is the second, rerank stage — it re-orders the recall stage's candidate pool. Recall (dense + BM25, fused with RRF) runs first; the cross-encoder comes after it.">
+        <p class="q-text">Which stage does the cross-encoder belong to?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">the rerank stage</button>
+          <button type="button" class="quiz-option">the recall stage</button>
+          <button type="button" class="quiz-option">the fusion stage</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="The cheap bi-encoder stage recalls a broad candidate pool, then the expensive cross-encoder re-orders only that short list.">
+        <p class="q-text">Which pair describes the two retrieval stages?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">recall then rerank</button>
+          <button type="button" class="quiz-option">recall then remake</button>
+          <button type="button" class="quiz-option">recall then rename</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p><a href="https://arxiv.org/abs/1901.04085">"Passage Re-ranking with BERT" — Nogueira &amp; Cho, 2019</a> is the origin: run BERT over the top candidates to re-order them, +27% MRR@10. The <a href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">ms-marco-MiniLM-L6-v2 model card</a> documents the exact model you ran — 22.7M params, MRR@10 39.01, and the sentence that matters most: it ranks by score, and the score is uncalibrated. The card points to SBERT.net's "Retrieve &amp; Re-rank" guide for the two-stage pattern in full.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#reranking">reranking</a>, <a href="../reference/glossary.html#candidate-pool">candidate pool</a>, <a href="../reference/glossary.html#cross-encoder">cross-encoder</a>, <a href="../reference/glossary.html#bi-encoder">bi-encoder</a>.</p>
+    <p class="next">The retrieval layer is now complete — hybrid search (lesson 3), query layer (lesson 4), reranking (this lesson). Next, the capstone: one end-to-end system that indexes, recalls, reranks, generates, and <em>cites</em> — with recall@k and faithfulness running on every answer you can audit.</p>
+  </footer>
+</main>
+</body>
+</html>

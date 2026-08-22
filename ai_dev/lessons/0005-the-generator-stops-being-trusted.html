@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 5: The generator stops being trusted on faith — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 5 · Building AI Systems in Python</p>
+    <h1>The generator stops being trusted on faith</h1>
+    <p class="lede">Retrieval was never the whole story. The answer the model writes is a new object, and it needs its own check: faithfulness.</p>
+    <p class="meta">~45 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0004-query-stops-being-sacred.html">lesson 4</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Lessons 1–4 measured one question: <em>did the right chunk come back?</em> But the fintech risk isn't a bad ranking — it's a confident wrong answer. A KYC auditor asks "does this customer appear on a sanctions list?" and the model answers from a chunk that says the opposite. A credit-risk summary quietly flips "no adverse history" to "adverse history noted". Retrieval metrics would call both runs perfect, because the right chunk <em>was</em> returned. This lesson builds the second measurement — <strong>faithfulness</strong> — that catches the answer itself.</p>
+  </div>
+
+  <h2>Two questions, one pipeline</h2>
+  <p>Every RAG pipeline answers two independent questions, and they must not be confused:</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Retrieve</span><span class="node-sub">recall@k — did the right chunk come back?</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Generate</span><span class="node-sub">the model writes an answer</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Check</span><span class="node-sub">faithfulness — did the answer stay inside the chunk?</span></span>
+  </div>
+  <p><strong>Recall@k</strong> (lessons 2–4) scores retrieval. <strong>Faithfulness</strong> scores the text the model wrote, against the chunks it was given. A pipeline can have perfect recall and zero faithfulness — the retriever hands over the gold chunk, and the generator writes something the chunk does not say. That is the failure this lesson measures.</p>
+  <p class="sidenote"><strong>Why retrieval metrics can't see it.</strong> Recall only knows whether a chunk is <em>present</em> in the top-k. It has no opinion about what happens next. The moment you add a generator, you add a new surface where errors appear — and it needs its own number.</p>
+
+  <h2>The mechanic: decompose, check, score</h2>
+  <p>Faithfulness is reference-free — it needs no gold answer, only the answer and the retrieved context. That matters, because writing gold answers is exactly the cost you're trying to avoid. The procedure has three steps, named by two papers:</p>
+
+  <h3>1. Decompose the answer into atomic claims</h3>
+  <p>An answer is not one fact; it is several. <a href="https://arxiv.org/abs/2305.14251">FActScore</a> (Min et al., EMNLP 2023) breaks a generation into <strong>atomic facts</strong> and scores each one — because "generations often contain a mixture of supported and unsupported pieces of information, making binary judgments of quality inadequate." Their headline finding: ChatGPT achieves only <strong>58%</strong> factuality on long-form biographies. Mixed answers are the norm, so you must score claim by claim.</p>
+
+  <h3>2. Check each claim against the context</h3>
+  <p>For each atomic claim, ask: <em>does the retrieved context entail it?</em> The tool is <strong>natural language inference</strong> (NLI): a model reads a premise and a hypothesis and labels the relationship <code>entailment</code>, <code>neutral</code>, or <code>contradiction</code>. Here the premise is the retrieved context and the hypothesis is the claim. <a href="https://arxiv.org/abs/2309.15217">RAGAS</a> (Es et al., 2023) is the framework that made this the standard faithfulness recipe: "identify all claims in the response, check each claim to see if it can be inferred from the retrieved context."</p>
+  <ul>
+    <li><code>entailment</code> → the claim is <strong>supported</strong> by the context.</li>
+    <li><code>neutral</code> → the claim isn't there at all → <strong>unsupported</strong>.</li>
+    <li><code>contradiction</code> → the claim conflicts with the context → <strong>unsupported, and worse</strong>: confident wrongness.</li>
+  </ul>
+
+  <h3>3. Score</h3>
+  <pre><code>faithfulness = supported claims / total claims</code></pre>
+  <p>Both <code>neutral</code> and <code>contradiction</code> count as unsupported. Only <code>entailment</code> counts. A 1.0 means every claim is grounded; a 0.0 means none are.</p>
+  <p class="sidenote"><strong>The NLI model is itself a model.</strong> It is a cheap, deterministic stand-in for a human auditor — not the auditor. It catches the polarity flips and invented claims that matter most, but it can be fooled. Treat a faithfulness score as a regression number you can run every build, and escalate to a human only when it drops.</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0005/</code>, <code>faithfulness.py</code> holds four cases. Each is a <code>(question, retrieved context, generated answer)</code> triple with the answer's atomic claims already written out (the <code>--live</code> step has the LLM decompose instead). The harness checks each claim with a local NLI model, <code>cross-encoder/nli-MiniLM2-L6-H768</code> — 82M parameters, trained on SNLI and MultiNLI, runs on ordinary hardware.</p>
+  <p>One thing to notice before you run: in every case the context shown <em>is</em> the gold chunk. Retrieval did its job in all four — recall@k would be 1.0 across the board. The only thing that changes is the answer.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run faithfulness.py</code>. The first run downloads the NLI model (~130&nbsp;MB). You should see four cases and an overall <strong>2/5 = 0.40</strong>.</li>
+    <li><strong>Read the baseline.</strong> Case <code>faithful</code> scores 1/1: the answer restates the chunk in its own words. This is the good path — the generator wrote, and the writing stayed inside the context.</li>
+    <li><strong>Read the mixed answer.</strong> Case <code>hallucination-sneaks-in</code> scores 1/2: one claim is <code>SUPPORTED</code>, but "emails the support team for help" is <code>NOT IN CONTEXT</code>. A single sentence carried a hallucination — exactly the mixture FActScore warns about. This is why you decompose.</li>
+    <li><strong>Read the misread.</strong> Case <code>right-chunk-wrong-claim</code> scores 0/1: the gold chunk says the scheduler computes the review date, the answer says the learner manually requests it. Right chunk, wrong claim.</li>
+    <li><strong>Read the one that matters.</strong> Case <code>compliance-polarity-flip</code> scores 0/1 with <code>CONTRADICTED</code>: the chunk says the platform <em>stores no</em> recordings, the answer says it <em>stores</em> them. In a fintech this is the answer that ends a career. Retrieval would have scored it perfect.</li>
+    <li><strong>Watch the labels.</strong> Notice the two failure flavors: <code>NOT IN CONTEXT</code> (neutral — invented detail) and <code>CONTRADICTED</code> (reversed a fact). Both score 0 for faithfulness; the second is the dangerous one. Distinguishing them is why NLI has three labels, not two.</li>
+    <li>(Optional) <strong>Make decomposition real.</strong> With <code>OPENAI_API_KEY</code> set, run <code>uv run faithfulness.py --live</code> — an LLM decomposes each answer into claims, then the same NLI model checks them. Compare the LLM's decomposition to the hand-written claims: decomposition is itself a place errors hide.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why "neutral" and "contradiction" both score zero, what "entailment" actually means to the NLI model, where decomposition can itself go wrong, or how you'd wire this into a regression suite that runs on every build — ask. If you run <code>--live</code>, bring me the LLM's decomposition: comparing it to the hand-written claims is the best practice available.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Faithfulness</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Faithfulness checks whether the retrieved context entails each claim — entailment is the only label that counts as supported.">
+        <p class="q-text">What does faithfulness require of each claim?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The context entails it</button>
+          <button type="button" class="quiz-option">The context repeats it</button>
+          <button type="button" class="quiz-option">The context ignores it</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Faithfulness scores the written answer against the retrieved context — grounding, not wording. Recall@k scores retrieval; faithfulness scores the generation.">
+        <p class="q-text">Which question does faithfulness answer?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">Is the answer grounded?</button>
+          <button type="button" class="quiz-option">Is the answer reworded?</button>
+          <button type="button" class="quiz-option">Is the answer expanded?</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A 0.5 means half the atomic claims are entailed by the context and half are not — which is why you decompose before you score.">
+        <p class="q-text">What does a faithfulness score of 0.5 mean?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">Half the claims hold</button>
+          <button type="button" class="quiz-option">Half the chunks hold</button>
+          <button type="button" class="quiz-option">Half the tokens hold</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p><a href="https://arxiv.org/abs/2309.15217">"RAGAS: Automated Evaluation of Retrieval Augmented Generation" — Es et al., 2023</a> is the anchor: a reference-free suite spanning retrieval, faithfulness, and generation quality. Its faithfulness recipe (claims → inferable-from-context → supported/total) is what you built, and its <a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/">faithfulness docs</a> walk the Einstein example with a worked 0.5. <a href="https://arxiv.org/abs/2305.14251">"FActScore" — Min et al., EMNLP 2023</a> is the conceptual parent: decompose into atomic facts, score each, and the sobering 58% finding. The NLI model card, <a href="https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768">cross-encoder/nli-MiniLM2-L6-H768</a>, documents the three labels you just used.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#faithfulness">faithfulness</a>, <a href="../reference/glossary.html#atomic-claim">atomic claim</a>, <a href="../reference/glossary.html#nli">NLI / entailment</a>, <a href="../reference/glossary.html#answer-relevance">answer relevance</a>.</p>
+    <p class="next">The measurement spine is complete — retrieval (recall@k) and generation (faithfulness). Next, the capstone: one end-to-end system that indexes documents, retrieves, generates, and <em>cites</em> — with both numbers running on every answer you can audit.</p>
+  </footer>
+</main>
+</body>
+</html>

@@ -19,6 +19,8 @@
 - Build-from-scratch first (numpy, no frameworks) so the mechanics aren't hidden; introduce frameworks later once they'd be understood as shortcuts.
 - Every lesson ties to the mission (language app / fintech / job market).
 - Use retrieval practice quizzes with equal-length answers; tight feedback loops.
+- Quizzes test the *concept*, never the *example* used to teach it. A question whose answer is a specific chunk id / rank / corpus number from the lesson's own run is a bug (lesson 6 Q2 — "which rank did p9 move to?" — was exactly this; replaced with "which stage does the cross-encoder belong to?").
+- Run `python3 scripts/check_quiz.py` after authoring any quiz — it verifies every question's options match in word count and character count. Don't re-derive the length check by hand.
 
 ## Observed preferences (session 2)
 
@@ -64,3 +66,29 @@ The user challenged "harness" — used 7 times across lessons 2–3 but absent f
 ## Session 8: literature contributor + lesson-4 design
 
 The user found and proposed two papers unprompted (2305.14283 query rewriting, 2402.03367 RAG-Fusion), completing lesson 4's trio with HyDE. Reward this: assign abstract-reading as prep, and treat his paper finds as curriculum input. Lesson-4 empirical design: multi-query RRF *failed* on the paraphrase row (fused rank 4, even at RRF k=10) while hyde hit rank 1 and the best single rewrite hit rank 3 — the lesson teaches this honestly and shows that adding the hyde doc as a variant flips multi (one strong ballot carries the fusion). `--live` mode regenerates rewrites via the learner's own LLM (OPENAI_API_KEY/BASE_URL/MODEL). Retrieval spine complete; next: faithfulness evaluation of generated answers (Ragas), then capstone app.
+
+## Lesson 5 delivered: faithfulness (the second measurement)
+
+Retrieval spine (1–4) is done; lesson 5 scores the *answer*, not the retrieval. Design: reference-free faithfulness = decompose → NLI entailment → supported/total, sourced to FActScore (2305.14251) and RAGAS (2309.15217). Empirical evidence on the learner's own corpus: four cases run through local `cross-encoder/nli-MiniLM2-L6-H768` — faithful 1.00, hallucination-sneaks-in 0.50, right-chunk-wrong-claim 0.00, compliance-polarity-flip 0.00 (contradiction), overall 0.40 — with recall@k held at 1.0 by construction in all four, so the lesson's thesis ("perfect recall ≠ faithful answers") is demonstrated, not asserted. The compliance-polarity-flip case is the fintech tie-in: a reversed "stores no recordings" → "stores recordings" is the career-ending hallucination, and only faithfulness catches it. Next: capstone — end-to-end system with citations running both metrics; also flag that the prediction track (fraud/underwriting/credit risk, LLM-as-classifier) is still queued behind the capstone.
+
+## Terminology rules reaffirmed (lesson 5)
+
+- Two-metric model is now fixed vocabulary: **recall@k** = retrieval, **faithfulness** = generation. Never conflate; each lesson footer states which it measures.
+- NLI's three labels carry meaning, not just scores: neutral = invented detail, contradiction = reversed fact. Both are unsupported; only entailment counts.
+- NLI model is a cheap deterministic proxy, not a human auditor — frame faithfulness as a CI regression number, human escalation on drop. Keep this honest framing in the capstone.
+
+## Lesson 6 delivered: reranking (the deferred retrieval-layer fix, now taught)
+
+The learner caught that reranking had been *named* across lessons 2–3 and the glossary but never *taught or built*. Lesson 6 closes it. Empirical design on the same 24-chunk corpus / 6-question gold set, with a U-shaped pool-size story that must be preserved: pool N=10 → 0.83→1.00 (p9 rank 5→3, no query rewrite); N=3 → still 0.83 (p9 not in pool, recall is the floor); N=24 → still 0.83 (paraphrase rescued but the "long-term recall sharp" row drops, p5 rank 1→4, cross-encoder scores bunch ~−11.2 over the junk tail). Teach: (1) cross-encoder scores are uncalibrated — order, not magnitude; (2) the pool is a measured knob, not a guess; (3) "measured, never trusted" extends to reranking just like fusion. Retrieval layer is now complete: hybrid (3) → query (4) → rerank (6). Next: capstone.
+
+## Reranking is now canonical retrieval-layer vocabulary
+
+Two-stage retrieval = recall (bi-encoder/BM25/RRF) then rerank (cross-encoder). Glossary gained `reranking` and `candidate pool`; `retrieval-layer` now lists reranking with a lesson pointer. Cross-encoder already had an entry from lesson 5's explainer. Keep "recall is the floor" and "uncalibrated score" phrasing consistent wherever the pool or the score is discussed.
+
+## Set vs rank — the capstone must report set metrics, not rank metrics
+
+The learner drove a key clarification: a generator reads a *set*, so within the top-k rank is irrelevant; reranking's value is re-selecting which chunks cross the k cut, not ordering. Consequences to hold everywhere from here: (1) report recall@k, precision@k, and faithfulness in the capstone — never MRR/NDCG as the headline; (2) when citing reranking/search papers (which quote MRR@10/NDCG), always translate into recall terms for him; (3) "raise k" and "rerank" are two levers for the same goal, traded against tokens/latency/lost-in-the-middle/faithfulness; (4) "Lost in the Middle" (Liu et al. 2023, arXiv:2307.03172) is the caveat that keeps rank from being fully irrelevant at large k. Recorded in LR-0009.
+
+## Learner pattern: builds the metric/vocab taxonomy himself
+
+He asks "what is X?" (BM25 vs bi-encoder, MRR, NDCG, context precision) and immediately reasons about implications ("would reranking matter more where rank matters?"). He is assembling a taxonomy, not just collecting definitions. Reward this by adding the term to the glossary the moment he uses it correctly, and by always situating a new metric in the existing family (set vs rank vs graded). Note: MRR/NDCG/precision were added to the glossary while explaining them — justified by his immediate, correct use, but for a less-engaged learner wait for demonstrated use before promoting.
