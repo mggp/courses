@@ -1,0 +1,3 @@
+# Interview diagnostic: strengths and interview-first gaps
+
+Quick six-question drill established the learner's current floor. Strong: agent versus LLM (with a small MCP-boundary refinement), vector versus graph database choice, and prompt versus context engineering/context-window dilution. Partial: financial-RAG guardrails (correct abstention instinct, but not yet layered controls) and sampling controls (temperature understood; top-p missing). Primary answer-practice gap: the truthful Bedrock answer currently ends at "no experience" instead of bridging to the learner's genuine FastAPI/MCP/RAG work and the cloud architecture criteria he can discuss. The interview-first roadmap is now adaptive sections rather than a fixed four-lesson plan.

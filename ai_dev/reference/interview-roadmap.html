@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview Roadmap — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="prose">
+  <header class="lesson-header">
+    <p class="kicker">Reference · Interview-first syllabus</p>
+    <h1>Interview roadmap</h1>
+    <p class="lede">A short, truthful route from the existing RAG spine to the concepts the interview will actually probe.</p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Rule zero</p>
+    <p>Do not optimize for sounding experienced. Optimize for being precise about what you built, what you maintained, what you understand architecturally, and what you have not operated in production. A credible "I have not used Bedrock in production; here is how I would evaluate it" is stronger than invented platform experience.</p>
+  </div>
+
+  <h2>Current coverage</h2>
+  <p><strong>Strong already.</strong> <a href="../lessons/0001-rag-from-the-ground-up.html">RAG mechanics</a>, chunking, dense/BM25/hybrid retrieval, query rewriting and HyDE, reranking, recall/precision/faithfulness, citations and attribution, context-window dilution, and financial-RAG abstention/guardrail instincts.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0008-not-every-ai-problem-is-rag.html">Classification versus retrieval</a>: labels, held-out evaluation, and thresholds as policy.</p>
+  <p><strong>Needs interview-first coverage.</strong> Agent architecture, tools/skills/MCP, guardrails, sampling controls, prompt versus context engineering, vector versus graph data, semantic chunking, cloud architecture, and concise Python/FastAPI/SOLID answers.</p>
+
+  <h2>Truthful baseline</h2>
+  <ul>
+    <li>Senior Python/web developer; maintained FastAPI services and has about two years of Django development.</li>
+    <li>Built a personal LangGraph tool; do not claim LangChain, AutoGen, or CrewAI experience unless it becomes true.</li>
+    <li>Configured MCP tools and integrated them into a maintained FastAPI service through a library.</li>
+    <li>No hands-on Bedrock, Azure AI/Foundry, or Vertex AI experience to claim yet.</li>
+  </ul>
+
+  <h2>Adaptive interview sections</h2>
+
+  <h3>A · Agent systems and integration boundaries</h3>
+  <p><strong>Diagnostic:</strong> strong foundation. You already distinguish an LLM from the surrounding control loop and can connect it to LangGraph/FastAPI/MCP work. Refine the exact boundaries: MCP standardizes access to tools/resources/prompts, not planning or memory; skills are reusable instruction/resource packages; multi-agent needs a measurable reason such as independent parallel work or context isolation.</p>
+
+  <h3>B · Safety and control plane</h3>
+  <p><strong>Primary gap.</strong> Cover guardrails as layered controls rather than a prompt trick: authoritative/versioned data, retrieval quality, claim-level evidence, structured output, tool authorization, audit logs, abstention, and human escalation. Add sampling controls — especially top-p, which was missing in the drill — and turn the existing financial-RAG instincts into a concise answer.</p>
+
+  <h3>C · Data and knowledge architecture</h3>
+  <p><strong>Diagnostic:</strong> strong vector-versus-graph intuition. Reinforce the precise terms: vector similarity retrieves semantic evidence; graph traversal exposes explicit relationships. Add fixed-size versus semantic chunking and turn the existing RAG metrics work into an interview answer, not a re-teaching of the full RAG spine.</p>
+
+  <h3>D · Credible delivery story</h3>
+  <p><strong>Primary practice area.</strong> Turn genuine FastAPI/Django/LangGraph/MCP work into concise answers for FastAPI versus Flask and software-design principles. For Bedrock, Azure/Foundry, and Vertex, practice an honest gap answer that continues into architecture, evaluation, IAM/networking, latency, cost, monitoring, and a personal-project learning plan.</p>
+
+  <h3>After the interview-first block</h3>
+  <p>Return to the prediction track: label design and imbalance, LLM-as-classifier with structured output, tabular classification, anomaly detection, calibration, and regulated-model governance. Lesson 8 remains the foundation; it just stops being the immediate next branch.</p>
+
+  <h2>Answer shape</h2>
+  <p>For every question, use the same structure: <strong>definition → trade-off → one real example → limit or control</strong>. It prevents buzzword answers and makes unknown platform experience easy to state honestly.</p>
+  <pre><code>"I have not used Bedrock hands-on or in production, so I would not claim that.
+My relevant work is maintaining FastAPI services, integrating MCP tooling, and
+building/evaluating RAG mechanics locally. On Bedrock I would evaluate model
+choice, Knowledge Bases where the managed abstraction fits, IAM/network boundaries,
+evaluation, latency, cost, and monitoring. Any Bedrock work I build next would be
+a personal project, not production experience."</code></pre>
+
+  <footer class="lesson-footer">
+    <p>Primary-source map: <a href="https://www.anthropic.com/research/building-effective-agents">agent systems</a>, <a href="https://modelcontextprotocol.io/specification/2025-11-25">MCP specification</a>, <a href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI RMF</a>, <a href="https://neo4j.com/docs/getting-started/graph-database/">graph databases</a>, and the official cloud documentation recorded in <a href="../RESOURCES.md">RESOURCES.md</a>.</p>
+  </footer>
+</main>
+</body>
+</html>

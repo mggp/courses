@@ -38,6 +38,48 @@
   The canonical definition of the noise metric: precision@k averaged over ranks, rank-weighted. Use for: precision@k / context precision, the "how much of the retrieved set is noise" question, and its sibling Context Recall.
 - [Paper: "Lost in the Middle: How Language Models Use Long Contexts" — Liu et al., TACL 2023 (arXiv:2307.03172)](https://arxiv.org/abs/2307.03172)
   The caveat that keeps rank from being fully irrelevant to a generator: relevant info at the start or end of context is used best; performance degrades in the middle of long contexts. Use for: the "raise k vs rerank" tradeoff, why order still matters a little at large k.
+- [Paper: "Attributed Question Answering: Evaluation and Modeling for Attributed LLMs" — Bohnet et al. (arXiv:2212.08037)](https://arxiv.org/abs/2212.08037)
+  Formulates *attribution* as the task — can the model point to the source supporting each claim? — and how to measure it. Use for: the citation/provenance concern, "attribution" as the umbrella term.
+- [Paper: "Enabling Large Language Models to Generate Text with Citations" (ALCE) — Gao et al., EMNLP 2023 (arXiv:2305.14627)](https://arxiv.org/abs/2305.14627)
+  The first automatic citation-evaluation benchmark: fluency, correctness, and citation quality (recall = every claim cited, precision = every citation supports its claim). Finding: best models lack complete citation support 50% of the time on ELI5. Use for: citation precision/recall, the capstone's attribution upgrade.
+- [Docs: scikit-learn — Text feature extraction](https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction)
+  The official explanation of bag-of-words and TF-IDF: a representation born in information retrieval that also works with supervised document classifiers. Use for: lesson 8's retrieval-versus-classification bridge, any sparse-text baseline.
+- [Example: scikit-learn — Classification of text documents using sparse features](https://scikit-learn.org/stable/auto_examples/text/plot_document_classification_20newsgroups.html)
+  Official end-to-end text-classification example with held-out evaluation, confusion matrix, and a real metadata-leakage failure mode. Use for: the first local classifier, leakage discipline, error review.
+- [Docs: scikit-learn — Tuning the decision threshold for class prediction](https://scikit-learn.org/stable/modules/classification_threshold.html)
+  Separates probability estimation from the action policy; warns that a 0.5 cutoff is only a default and threshold tuning must not reuse training data. Use for: lesson 8's abstain path, future cost-sensitive classification.
+- [Paper: "Language Models (Mostly) Know What They Know" — Kadavath et al. (arXiv:2207.05221)](https://arxiv.org/abs/2207.05221)
+  Finds useful self-evaluation calibration in some formats but poor transfer of P(IK) calibration to new tasks. Use for: the later LLM-as-classifier lesson; generated confidence is not a deployment-ready probability without target-distribution validation.
+- [Guide: "Building Effective Agents" — Anthropic](https://www.anthropic.com/research/building-effective-agents)
+  Framework-neutral enough practical distinction between fixed workflows and agents that dynamically choose tools/process. Use for: agent versus LLM, begin with a single agent plus tools.
+- [Paper: "ReAct: Synergizing Reasoning and Acting in Language Models" — Yao et al. (arXiv:2210.03629)](https://arxiv.org/abs/2210.03629)
+  Primary action-loop paper: interleave model reasoning with external actions and observations. Use for: the agent control loop, tools, and feedback.
+- [Specification: Model Context Protocol](https://modelcontextprotocol.io/specification/2025-11-25)
+  Official protocol specification: host/client/server architecture and standardized tool, resource, and prompt access. Use for: MCP versus tools/skills; MCP does not provide planning, memory, or authorization policy by itself.
+- [Specification: MCP server tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+  A tool is a schema-described callable capability. Descriptions/annotations are untrusted unless the server is trusted; validate inputs and require approval for sensitive calls. Use for: tool safety and guardrails.
+- [Specification: Agent Skills](https://agentskills.io/specification)
+  A skill is a reusable instruction-and-resource package (typically `SKILL.md` plus optional scripts/references/assets), distinct from an MCP primitive or callable tool. Use for: tools versus skills versus MCP.
+- [Guide: "How we built our multi-agent research system" — Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
+  Concrete multi-agent tradeoffs: use independent breadth-first work or context isolation; expect higher token cost, coordination complexity, and difficult debugging. Use for: single versus multi-agent choice.
+- [Paper: "MemGPT: Towards LLMs as Operating Systems" — Packer et al. (arXiv:2310.08560)](https://arxiv.org/abs/2310.08560)
+  Primary framing for externalized agent memory under a limited context window. Use for: short-term prompt state versus long-term persisted/retrieved memory.
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
+  Non-vendor governance framework: govern, map, measure, manage AI risk. Use for: interview framing of guardrails as lifecycle controls, not merely prompt filters.
+- [NIST Generative AI Profile, AI 600-1](https://doi.org/10.6028/NIST.AI.600-1)
+  Generative-AI risk profile that grounds guardrails in system design, monitoring, human oversight, and residual-risk management. Use for: financial-RAG safety and compliance controls.
+- [Paper: "The Curious Case of Neural Text Degeneration" — Holtzman et al. (arXiv:1904.09751)](https://arxiv.org/abs/1904.09751)
+  Primary source for nucleus (`top_p`) sampling: sample from the smallest dynamic set whose probability mass reaches p. Use for: temperature/top-p interview answers and sampling tradeoffs.
+- [Docs: Neo4j — What is a graph database?](https://neo4j.com/docs/getting-started/graph-database/)
+  Official graph-database introduction: nodes, relationships, properties, and graph traversal. Use for: vector versus graph data architecture, relationship-heavy fraud and ownership questions.
+- [Docs: Amazon Bedrock — Overview](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html)
+  Official Bedrock overview. Use for: truthful cloud-platform architecture discussion: model inference, managed features, IAM, networking, observability, and cost.
+- [Docs: Amazon Bedrock Knowledge Bases](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html)
+  Official managed/custom RAG documentation. Use for: mapping the hand-built RAG spine to Bedrock without claiming production experience.
+- [Docs: Microsoft Foundry — What is Microsoft Foundry?](https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry)
+  Official current Microsoft/Azure AI platform overview. Use for: Azure AI comparison, deployment, agents, RBAC, evaluation, and monitoring vocabulary.
+- [Docs: Google Vertex AI generative AI quickstart](https://cloud.google.com/vertex-ai/generative-ai/docs/start/quickstart)
+  Official requested Vertex AI generative-AI starting point; currently redirects toward Gemini Enterprise Agent Platform documentation. Use for: Google platform vocabulary, with version/date awareness.
 
 ## Wisdom (Communities)
 
@@ -53,4 +95,6 @@
 - No verified high-trust resource yet on **the full evaluation loop at scale** (Ragas as a framework, HHEM-2.1-Open as an alternative hallucination classifier, and running metrics in CI) — worth verifying before the capstone lesson adds a citation-backed grounded answer.
 - Query-rewriting/HyDE coverage is now closed (lesson 4 + three verified papers); a practitioner write-up with a runnable example would still be a nice complement but is no longer blocking.
 - Retrieval-metric coverage is now closed (recall@k, precision@k/context precision, MRR, NDCG, and the set-vs-rank rule all have glossary entries and sources; see LR-0009).
-- The capstone (a grounded-answer app with citations) will want a verified practitioner guide on building a citation/attribution UI or an evaluation dashboard — not yet sourced.
+- The capstone (lesson 7) is delivered. Remaining unverified: a practitioner guide on a citation/attribution UI or an evaluation dashboard.
+- Prediction track has begun with local sparse text classification (lesson 8). Still missing before the fintech applications: verified sources on label design and class imbalance, probability calibration, LLM-as-classifier with structured output, structured/tabular classification, and anomaly detection. Do not claim the fictional support-ticket baseline transfers to fraud, underwriting, or credit risk.
+- Interview-first gaps now have verified sources. Still missing before interview drills become production claims: hands-on cloud AI work, framework experience beyond the learner's personal LangGraph/MCP work, and a verified source on fixed-size versus semantic chunking. The roadmap is `reference/interview-roadmap.html`.

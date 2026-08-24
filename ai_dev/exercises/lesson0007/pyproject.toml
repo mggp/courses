@@ -1,0 +1,10 @@
+[project]
+name = "lesson0007"
+version = "0.1.0"
+description = "Capstone: the whole RAG spine with citations and evaluation"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.2",
+    "openai>=3.1.0",
+    "sentence-transformers>=5.7.0",
+]

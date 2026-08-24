@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 7: An answer you can audit — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 7 · Capstone · Building AI Systems in Python</p>
+    <h1>An answer you can audit</h1>
+    <p class="lede">Six lessons, one run. Documents in, a cited answer out — and two numbers that tell you whether to trust it.</p>
+    <p class="meta">~45 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0006-two-stages-of-retrieval.html">lesson 6</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>This is the mission's success criterion, built: <em>documents in, retrieved context, grounded answers out — with citations the user can verify</em>. Nothing here is new machinery; every piece was built in lessons 1–6. What is new is the <em>wiring</em>: one pipeline that runs recall, rerank, generation, and evaluation together — and the discovery that a clean citation is not the same as a faithful answer. At a fintech, that distinction is the difference between an auditable answer and a confident, correctly-footnoted lie.</p>
+  </div>
+
+  <h2>The whole spine</h2>
+  <div class="flow">
+    <span class="node"><span class="node-title">Index</span><span class="node-sub">chunk + embed (1–2)</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Recall</span><span class="node-sub">dense + BM25 + RRF (3)</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Rerank</span><span class="node-sub">cross-encoder (6)</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Generate</span><span class="node-sub">answer with citations</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Evaluate</span><span class="node-sub">recall@k + faithfulness (2, 5)</span></span>
+  </div>
+  <p>The only new stage is <strong>generate with citations</strong>: the prompt hands the model its retrieved chunks — each labelled with its id — and instructs it to answer <em>only</em> from them and cite every claim, like <code>[p3]</code>. That citation is <a href="../reference/glossary.html#provenance">provenance</a> made visible: the trail from claim to chunk that a reader (or an auditor) can follow.</p>
+
+  <h2>Citations are not proof</h2>
+  <p>Here is the capstone's one real insight, and the reason the pipeline runs <em>two</em> checks, not one. A citation is a <em>pointer</em> — it says "this chunk was retrieved and I'm pointing at it." It says nothing about whether the claim is actually <em>supported</em> by that chunk. A model can cite a real chunk and assert something the chunk never says.</p>
+  <ul>
+    <li><strong>Structural citation integrity</strong> — does every <code>[pN]</code> point at a chunk that was actually retrieved? This is the local sanity check you built: necessary, but weak.</li>
+    <li><strong>Faithfulness</strong> — does any retrieved chunk actually <em>entail</em> each claim? (The NLI check from lesson 5, now pointed at the retrieved chunks.)</li>
+  </ul>
+  <p>The field's stronger name for the whole problem is <a href="../reference/glossary.html#attribution">attribution</a>. It asks whether each claim points at the <em>specific source that supports it</em>. The citation benchmark <a href="https://arxiv.org/abs/2305.14627">ALCE</a> splits this into <strong>citation recall</strong> (does every claim have a citation?) and <strong>citation precision</strong> (does every cited chunk entail its claim?). The harness has the structural floor plus faithfulness; the natural next upgrade is <em>per-citation faithfulness</em> — check a claim against the chunk it cites, not merely against any chunk in the top-k.</p>
+  <p class="sidenote"><strong>One gotcha worth knowing.</strong> The NLI cross-encoder from lesson 5 has a short maximum input length. Feed it a claim against <em>all three chunks concatenated</em> and it labels near-verbatim matches "neutral" — the premise is too long. The fix: check the claim against each chunk <em>individually</em> and count it supported if any chunk entails it. That also gives you a nicer answer: "supported by p5", not just "supported".</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0007/</code>, <code>capstone.py</code> consolidates lessons 1–6 into one file. The gold set carries a canned answer per question (with citations and hand-written atomic claims) so the whole thing runs offline; <code>--live</code> regenerates answers and claims with your own LLM.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run capstone.py</code>. You should see <strong>mean recall@3 = 1.00</strong> and <strong>mean faithfulness = 0.92</strong>.</li>
+    <li><strong>Read the recall column.</strong> Every row is 1.00 — including the paraphrase question that beat every retrieval trick in lessons 2–4. Lessons 1–6 got retrieval to the point where the gold chunk always makes the top-3. That column is now solved; stop tuning it.</li>
+    <li><strong>Read the citations.</strong> Each answer cites its chunk, and every citation is marked <code>ok</code> — it points at a chunk that was actually retrieved. This is <em>structural citation integrity</em>, the citation trail the mission promised: a reader can open <code>corpus.md</code> and inspect the alleged source. Do not confuse it with attribution yet.</li>
+    <li><strong>Read the catch.</strong> Question 6, "What method keeps long-term recall sharp?". The answer's first claim — spaced repetition — is <code>supported by p5</code>. Its second claim — "the intervals are fixed at one day, three days, and one week" — is <code>not in context</code>, <em>despite carrying the <code>[p5]</code> citation</em>. Faithfulness 1/2 = 0.50. The structural check passed; faithfulness caught it. In ALCE's vocabulary, checking that second claim specifically against <code>p5</code> would be a citation-precision / attribution check.</li>
+    <li><strong>Confirm the retrieval is not the point.</strong> That question's recall@3 is 1.00 and its citation is structurally valid — by every retrieval and provenance measure, the answer looks perfect. Only faithfulness sees the lie. A correctly-footnoted hallucination is the failure mode that ends careers in a compliance shop; per-citation attribution is the sharper production version of this check.</li>
+    <li>(Optional) <strong>Make it real.</strong> Run <code>uv run capstone.py --live</code> — the LLM writes the answers and decomposes its own claims, then the same harness audits them. Compare its citations and faithfulness to the canned set.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why structural citation integrity is weaker than attribution, how to turn the NLI check into per-citation faithfulness, where you'd add precision@k as the third number, or how you'd wire this into a regression suite that runs on every commit — ask. And run <code>--live</code>: comparing the LLM's real citations to the canned set is the best practice available.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, don't look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · The capstone</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="A citation is provenance made visible — it names the chunk a claim came from so the reader can open the source and check it.">
+        <p class="q-text">A citation lets the reader ______ the claim.</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">verify against the chunk</button>
+          <button type="button" class="quiz-option">revise against the chunk</button>
+          <button type="button" class="quiz-option">reword against the chunk</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A citation only proves the chunk was retrieved — the claim can still be false, which is why faithfulness (the NLI entailment check) runs alongside the citation check.">
+        <p class="q-text">Why is a correct citation not proof of faithfulness?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">The claim can be false</button>
+          <button type="button" class="quiz-option">The claim can be fused</button>
+          <button type="button" class="quiz-option">The claim can be fixed</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Recall (cheap, broad) runs first, the cross-encoder reranks that pool, and only then does the generator write the cited answer.">
+        <p class="q-text">Which order runs the full pipeline?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">recall, rerank, generate</button>
+          <button type="button" class="quiz-option">recall, generate, rerank</button>
+          <button type="button" class="quiz-option">generate, recall, rerank</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>The capstone synthesizes the <a href="https://arxiv.org/abs/2005.11401">RAG paper</a> (Lewis et al., 2020), whose "provenance" is the citation trail you built, and <a href="https://arxiv.org/abs/2309.15217">RAGAS</a> (Es et al., 2023), whose faithfulness recipe caught question 6's lie. The two new primary sources name the stronger citation problem: <a href="https://arxiv.org/abs/2212.08037">"Attributed Question Answering"</a> (Bohnet et al., 2022) defines attribution as the ability to source generated text, while <a href="https://arxiv.org/abs/2305.14627">ALCE</a> (Gao et al., EMNLP 2023) benchmarks citation quality. Its finding is worth absorbing: even the best systems lacked complete citation support 50% of the time on ELI5.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#provenance">provenance</a>, <a href="../reference/glossary.html#citation">citation</a>, <a href="../reference/glossary.html#attribution">attribution</a>, <a href="../reference/glossary.html#faithfulness">faithfulness</a>, <a href="../reference/glossary.html#recall">recall@k</a>.</p>
+    <p class="next">The retrieval-and-generation spine is complete: chunk → recall → rerank → generate → evaluate, with citations you can audit. Next, the mission's other fork: the <em>prediction</em> toolkit — LLM-as-classifier and structured-data problems (fraud detection, loan underwriting, credit risk), which want a different lens than retrieval.</p>
+  </footer>
+</main>
+</body>
+</html>

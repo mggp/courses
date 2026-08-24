@@ -1,0 +1,40 @@
+[
+  {"split": "train", "label": "billing", "text": "My premium subscription was charged twice this month."},
+  {"split": "train", "label": "billing", "text": "The annual plan payment failed even though my card has funds."},
+  {"split": "train", "label": "billing", "text": "I need an invoice for my language course purchase."},
+  {"split": "train", "label": "billing", "text": "How do I cancel the premium subscription before renewal?"},
+  {"split": "train", "label": "billing", "text": "A charge appeared after I had cancelled the plan."},
+  {"split": "train", "label": "billing", "text": "My receipt has the wrong billing address."},
+  {"split": "train", "label": "billing", "text": "The app says payment was declined when I upgrade."},
+  {"split": "train", "label": "billing", "text": "Please refund yesterday's premium purchase."},
+
+  {"split": "train", "label": "access", "text": "I forgot my password and cannot sign in."},
+  {"split": "train", "label": "access", "text": "The login code never arrives to my email."},
+  {"split": "train", "label": "access", "text": "Two factor authentication rejects my code."},
+  {"split": "train", "label": "access", "text": "My account is locked after too many login attempts."},
+  {"split": "train", "label": "access", "text": "I changed phones and lost access to the authenticator."},
+  {"split": "train", "label": "access", "text": "The reset password link has expired."},
+  {"split": "train", "label": "access", "text": "I cannot log in with my usual email address."},
+  {"split": "train", "label": "access", "text": "The app keeps signing me out of my account."},
+
+  {"split": "train", "label": "lesson", "text": "The French lesson will not mark my answer correct."},
+  {"split": "train", "label": "lesson", "text": "The Japanese audio exercise will not play."},
+  {"split": "train", "label": "lesson", "text": "My daily lesson is stuck on the grammar screen."},
+  {"split": "train", "label": "lesson", "text": "The review queue disappeared from the home page."},
+  {"split": "train", "label": "lesson", "text": "I cannot download the Spanish lesson for offline practice."},
+  {"split": "train", "label": "lesson", "text": "The pronunciation score never loads after I speak."},
+  {"split": "train", "label": "lesson", "text": "The dialogue exercise skips the final question."},
+  {"split": "train", "label": "lesson", "text": "My completed lesson did not save my progress."},
+
+  {"split": "test", "label": "billing", "text": "I was billed twice for the monthly plan."},
+  {"split": "test", "label": "billing", "text": "Where can I download a receipt for my subscription?"},
+  {"split": "test", "label": "billing", "text": "Why was my upgrade payment rejected?"},
+
+  {"split": "test", "label": "access", "text": "I cannot access my account because the verification code does not arrive."},
+  {"split": "test", "label": "access", "text": "The password recovery email link no longer works."},
+  {"split": "test", "label": "access", "text": "My new phone cannot generate the two factor login code."},
+
+  {"split": "test", "label": "lesson", "text": "The German practice screen will not accept my answer."},
+  {"split": "test", "label": "lesson", "text": "The pronunciation exercise has no sound."},
+  {"split": "test", "label": "lesson", "text": "Offline download for my current lesson fails."}
+]

@@ -92,3 +92,29 @@ The learner drove a key clarification: a generator reads a *set*, so within the 
 ## Learner pattern: builds the metric/vocab taxonomy himself
 
 He asks "what is X?" (BM25 vs bi-encoder, MRR, NDCG, context precision) and immediately reasons about implications ("would reranking matter more where rank matters?"). He is assembling a taxonomy, not just collecting definitions. Reward this by adding the term to the glossary the moment he uses it correctly, and by always situating a new metric in the existing family (set vs rank vs graded). Note: MRR/NDCG/precision were added to the glossary while explaining them — justified by his immediate, correct use, but for a less-engaged learner wait for demonstrated use before promoting.
+
+## Capstone delivered (lesson 7): spine complete, citations ≠ faithfulness
+
+`capstone.py` wires all six lessons into one runnable pipeline with citations + evaluation. Empirical result to preserve: mean recall@3 = 1.00, mean faithfulness = 0.92; question 6's "intervals are fixed at one day, three days, one week" claim carries a valid [p5] citation yet is "not in context" — the citation check passes, NLI faithfulness catches it. That is the capstone's thesis: **a citation is a pointer, not proof.** Run both checks, always.
+
+## NLI cross-encoder gotcha (must remember for future lessons)
+
+`cross-encoder/nli-MiniLM2-L6-H768` mislabels near-verbatim claims as "neutral" when the premise is the *concatenated* top-k context (too long for its max sequence length). Fix: check each claim against each retrieved chunk *individually* and count it supported if any chunk entails it. This is also semantically correct (a claim is grounded if some chunk entails it) and yields provenance per claim ("supported by p5"). Recorded in LR-0010.
+
+## Next fork: the prediction track
+
+The retrieval-and-generation spine is done (lessons 1–7). Prediction track begins with lesson 8, deliberately a local sparse-text baseline rather than an LLM or a regulated decision: same TF-IDF features, two contracts — retrieval returns source texts; logistic regression maps labelled fictional support tickets to a fixed label set. Exact verified output: 24 train / 9 held-out test, macro F1 1.00 on intentionally stylized data, and an ambiguous billing/access ticket abstains at threshold .60 (access=.40, billing=.35, lesson=.25) but routes `access` at .30. Preserve the teaching rule: a perfect toy score earns zero deployment trust.
+
+This fork is a *different lens* (labels, held-out data, thresholds, calibration), not another retrieval trick. Do not claim the fictional support-ticket baseline transfers to fraud, underwriting, or credit risk. Sources are now verified in RESOURCES.md; the next prediction lessons should cover label design/class imbalance, then structured output/LLM-as-classifier, then tabular classification/anomaly detection. Per teach-skill discipline, do not add lesson-8 vocabulary to the glossary or write a learning record until the learner runs it and demonstrates use.
+
+## Attribution is the real name for citation quality
+
+The capstone's "citation coverage" check (cited id ∈ retrieved set) is only the *structural floor*. The field's umbrella term is **attribution** (Bohnet et al. 2022, arXiv:2212.08037), benchmarked by **ALCE** (Gao et al. 2023, arXiv:2305.14627) as citation recall + citation precision. The meaningful upgrade to the capstone is *per-citation faithfulness*: check each claim against the chunk it cites, not the whole context. Seed this for a future lesson or a capstone refinement. ALCE stat worth quoting: best models lack complete citation support 50% of the time on ELI5. Both papers added to RESOURCES; `attribution` added to glossary.
+
+## Interview-first sequencing (upcoming interview)
+
+The interview question list overrides elective ordering. Roadmap: `reference/interview-roadmap.html`. Do not force it into four 45-minute lessons; use adaptive sections and advance only as the diagnostic closes gaps. Pause deeper prediction after lesson 8 until the agent/integration, safety/control-plane, data-architecture, and credible-delivery sections are interview-ready.
+
+Actual answer baseline (never inflate): senior Python/web dev; maintained FastAPI services; roughly two years Django; built a personal LangGraph tool; configured MCP tools and added them to a maintained FastAPI service via a library. No hands-on Bedrock, Azure AI/Foundry, or Vertex AI work to claim. Cloud answer must be architecture knowledge + a candid gap + a concrete personal-project learning plan, never "production experience." Recorded in LR-0011.
+
+Quick diagnostic results (2026-08-24): strong — agent versus LLM (needs MCP's protocol/not-orchestration nuance), vector versus graph, prompt versus context engineering/context dilution. Partial — financial-RAG guardrails (only abstention named), temperature (good) but top-p missing. Primary practice gap — truthful cloud answer currently stops at "no experience" rather than bridging to relevant FastAPI/MCP/RAG work plus architecture criteria. Recorded in LR-0012.

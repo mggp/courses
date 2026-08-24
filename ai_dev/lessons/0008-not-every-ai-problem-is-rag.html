@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 8: Not every AI problem is RAG — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 8 · Prediction track · Building AI Systems in Python</p>
+    <h1>Not every AI problem is RAG</h1>
+    <p class="lede">The same text vectors can return evidence or predict a label. The difference is the question, the data, and what counts as an error.</p>
+    <p class="meta">~40 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0007-an-answer-you-can-audit.html">lesson 7</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Your fintech short-list has always contained two different problems. KYC audit and document Q&amp;A ask, "what do the sources say?" — the RAG spine you finished in lesson 7. Fraud detection, loan underwriting, and credit risk ask, "which predefined outcome best fits this case?" That is a <strong>prediction</strong> problem. This lesson begins that second toolkit with harmless fictional support-ticket routing, not a credit or fraud decision. The mechanics transfer; the production claim does not.</p>
+  </div>
+
+  <h2>Same vectors, different contract</h2>
+  <p>You already know one use for vectors: compare a question with documents and return the closest sources. Classification starts with the same text-to-numbers step, but adds <em>labeled examples</em> and changes the output contract.</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Input text</span><span class="node-sub">a question or ticket</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">TF-IDF vector</span><span class="node-sub">word-weight features</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Retrieve</span><span class="node-sub">rank source texts to inspect</span></span>
+  </div>
+  <div class="flow">
+    <span class="node"><span class="node-title">Input text</span><span class="node-sub">a ticket to route</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">TF-IDF vector</span><span class="node-sub">word-weight features</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Classify</span><span class="node-sub">choose from fixed labels</span></span>
+  </div>
+  <p><strong>Retrieval</strong> needs a corpus but no labels. It returns evidence: arbitrary chunks a person or LLM can read. <strong>Classification</strong> needs examples already labelled <code>billing</code>, <code>access</code>, or <code>lesson</code>. It learns associations from text to that fixed vocabulary and returns one label plus scores. The output is a decision candidate, not a source trail.</p>
+  <p class="sidenote"><strong>TF-IDF is the bridge.</strong> The scikit-learn docs describe TF-IDF as a term-weighting scheme born in information retrieval that is also useful for document classification. Same representation; different objective. That is why this is the right first prediction lesson after RAG.</p>
+
+  <h2>A probability is not an action</h2>
+  <p>A classifier estimates something like <code>P(label | ticket)</code>. The product still has to decide what to <em>do</em> with that score: route automatically, ask for human review, or take another action. The <strong>decision threshold</strong> is policy, not model truth. Scikit-learn's threshold guide makes the split explicit: probability estimation is a statistical problem; choosing an action is a separate decision problem.</p>
+  <p>That distinction is why this lesson has an abstain path. A ticket can mention both billing and account access. Forcing it into one label merely because one score is fractionally larger hides ambiguity. At a higher threshold the right output is <code>needs_review</code>.</p>
+
+  <h2>Build it</h2>
+  <p>In <code>exercises/lesson0008/</code>, <code>tickets.json</code> is a tiny, fictional, labelled Lingua support dataset: 24 training tickets and 9 held-out tickets across three routing labels. <code>classify.py</code> fits one <code>TfidfVectorizer</code>, then uses it two ways: cosine similarity for retrieval and logistic regression for classification. The test split is fixed so the run is reproducible.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run classify.py</code>. The script prints the two contracts side by side: retrieved source tickets first, then classifier evaluation and an action decision.</li>
+    <li><strong>Read retrieval.</strong> For "I was charged twice for premium and need a refund", it returns three billing tickets with cosine similarities. It does not decide what the new ticket <em>is</em>; it hands you evidence to inspect. Labels are incidental here.</li>
+    <li><strong>Read classification.</strong> The same vectorizer now trains a logistic regression on the 24 labelled tickets and scores the 9 never-seen test tickets. You should see macro F1 = <strong>1.00</strong> and a diagonal confusion matrix. Do not celebrate: that is a tiny, stylized teaching dataset, not validation of a real product. The win is that the score came from held-out labels, not from how plausible the predictions looked.</li>
+    <li><strong>Read the ambiguous ticket.</strong> "My card was charged twice and I cannot log in after changing phones" gets <code>access=0.40, billing=0.35, lesson=0.25</code>. At the default <code>0.60</code> threshold, the action is <code>needs_review</code>. That is the honest answer: this input contains two issues and the classifier is unsure.</li>
+    <li><strong>Change policy, not the model.</strong> Run <code>uv run classify.py --threshold 0.30</code>. The probabilities stay identical, but the action becomes <code>access</code>. You changed the cost policy, not what the model learned. A 0.5 default is a library convention, never a business justification.</li>
+    <li><strong>Carry the boundary to fintech.</strong> A fraud or underwriting classifier needs representative labelled history, error costs, validation, calibration, fairness analysis, governance, and human review. This toy teaches only the first question: are you retrieving evidence, or predicting from a fixed label set?</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Why macro F1 rather than accuracy, what logistic regression learned from the vectors, why a threshold cannot be tuned on the test set, how an LLM classifier changes the interface but not the evaluation contract, or why credit underwriting needs a much stricter process — ask.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the harness. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Classification</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Classification maps an input to one member of a predefined label vocabulary. Retrieval instead returns source texts for inspection.">
+        <p class="q-text">What output makes this task classification?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">A fixed class label</button>
+          <button type="button" class="quiz-option">A cited source list</button>
+          <button type="button" class="quiz-option">A local source list</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="The classifier estimates scores; a threshold turns those scores into a product action such as automatic routing or needs_review. The threshold is policy, not learned truth.">
+        <p class="q-text">What does a threshold turn probabilities into?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">an action policy</button>
+          <button type="button" class="quiz-option">a source ranking</button>
+          <button type="button" class="quiz-option">a feature vector</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Choose a threshold on validation data, then leave the held-out test set untouched for an honest final measurement. Training, evaluation, and production are all the wrong places to choose it.">
+        <p class="q-text">Where should a decision threshold be chosen?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">the validation split</button>
+          <button type="button" class="quiz-option">the evaluation split</button>
+          <button type="button" class="quiz-option">the production split</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Read scikit-learn's <a href="https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction">text feature extraction guide</a> for the exact TF-IDF bridge you just used: it explains that the weighting began in retrieval and is also useful for document classification. Its <a href="https://scikit-learn.org/stable/auto_examples/text/plot_document_classification_20newsgroups.html">sparse text-classification example</a> is the next practical read because it exposes a real leakage trap: headers and metadata can make a classifier look smarter than it is. Then read its <a href="https://scikit-learn.org/stable/modules/classification_threshold.html">decision-threshold guide</a>: it cleanly separates probability estimation from the action policy you just changed.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms introduced: classification, label, held-out test set, macro F1, decision threshold.</p>
+    <p class="next">You can now identify the fork: retrieve evidence for an answer, or predict a bounded label from examples. Next, make the classification side honest too: labels, class imbalance, precision/recall, and why a perfect toy score earns exactly zero deployment trust.</p>
+  </footer>
+</main>
+</body>
+</html>
