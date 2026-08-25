@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 10: Safety is a control plane — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 10 · Interview-first · Safety and control</p>
+    <h1>Safety is a control plane</h1>
+    <p class="lede">A prompt can suggest behavior. A control plane decides what the system is allowed to trust, return, execute, record, and escalate.</p>
+    <p class="meta">~40 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0009-the-boundary-is-the-system.html">lesson 9</a> &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Your diagnostic answer to financial-RAG safety had the right instinct — abstain when evidence is missing — but only one control. This lesson turns that instinct into a layered answer: authoritative data, retrieval and provenance, structured output, claim checks, tool authorization, auditability, and human escalation. It also closes the missing sampling concept: <code>temperature</code> and <code>top_p</code> control variation; they do not make an answer safe or true.</p>
+  </div>
+
+  <h2>Guardrails are not a prompt sentence</h2>
+  <p>“Answer only from the context” is a useful instruction. It is not an enforcement mechanism. The model can still produce an unsupported claim, cite the wrong chunk, request an unsafe tool, or return malformed data. A <strong>guardrail</strong> is a control that constrains, checks, or routes a system at a specific boundary. A <strong>control plane</strong> is the set of policies, checks, approvals, measurements, and escalation paths that govern the AI data plane.</p>
+
+  <h3>Guardrails are one part of the control plane</h3>
+  <p>Your inference is right: runtime guardrails belong in the control plane. But the control plane is broader than the guards themselves. It decides the intended behavior, supplies the rules and versions, observes what happened, and changes the system when evidence says the current behavior is unsafe, ineffective, or too expensive.</p>
+  <ul>
+    <li><strong>Policy and configuration:</strong> risk limits, schemas, tool permissions, tenant scope, prompts, model versions, retrieval indexes, thresholds, and feature flags.</li>
+    <li><strong>Decision and routing:</strong> guardrails, retries, fallbacks, abstention, human approval, rate limits, and kill switches.</li>
+    <li><strong>Identity and governance:</strong> caller identity, ownership, change review, data retention, audit records, and incident handling.</li>
+    <li><strong>Measurement and feedback:</strong> telemetry, evaluations, alerts, dashboards, and the actions triggered by those signals.</li>
+  </ul>
+  <p>The <strong>data plane</strong> is the work being governed: retrieve documents, run inference, call a tool, transform the result, and return an answer. The control plane does not have to be a separate service, but its responsibilities should be identifiable rather than hidden inside the model prompt.</p>
+
+  <h3>How measurements influence the control plane</h3>
+  <p>A measurement is not automatically a control. A dashboard that displays unsupported-claim rate is observability. It becomes part of the control plane when a defined threshold causes a decision or change:</p>
+  <ul>
+    <li><strong>Per request:</strong> a failed faithfulness score routes this answer to abstention or human review.</li>
+    <li><strong>During operation:</strong> a spike in authorization denials or latency triggers an alert, tighter limits, or a fallback.</li>
+    <li><strong>Between releases:</strong> evaluation results change a threshold, prompt, retriever, model version, rollout percentage, or rollback decision.</li>
+    <li><strong>After incidents:</strong> false accepts, false rejects, human overrides, and near misses reveal that a policy or detector needs recalibration.</li>
+  </ul>
+  <div class="callout">
+    <p class="callout-title">The feedback loop</p>
+    <p><strong>observe → measure → compare with a limit → decide → change or route → observe again</strong>. For example, if an evaluation set shows that a faithfulness threshold misses too many unsupported claims, the control plane can raise the threshold, require human review, change the checker, or roll back the release. That is why measurements influence the control plane: they are evidence for policy and operational decisions, not merely reports after the fact.</p>
+  </div>
+
+  <h3>Three verbs, made concrete</h3>
+  <p>These are useful engineering categories, not a universal standards taxonomy. Ask what the mechanism does, where it runs, and what happens when it fails:</p>
+  <ul>
+    <li><strong>Constrain</strong> narrows the set of outputs or actions that are allowed. An enum in a schema, an allowlist of tools, a tenant boundary, or a maximum iteration count constrains the system. A prompt saying “do not do X” is only a soft constraint unless something outside the model enforces it.</li>
+    <li><strong>Check</strong> evaluates a proposed input, output, claim, or action against a rule or piece of evidence. It answers “does this satisfy the condition?” A schema validator, a faithfulness check, and a permission check are all checks, although they check different properties.</li>
+    <li><strong>Route</strong> chooses what happens next based on the result: proceed, retry, repair, use a fallback, refuse, or send the case to a human. <code>needs_review</code> is a route, not a vague feeling.</li>
+  </ul>
+  <p>The timeline is usually <strong>constrain → propose → check → route → execute or abstain</strong>. A single mechanism can occupy more than one position: structured output can constrain generation and then be checked by a validator.</p>
+
+  <div class="callout">
+    <p class="callout-title">So: are these guardrails?</p>
+    <ul>
+      <li><strong>Schema validation:</strong> yes, when it is a runtime gate that rejects malformed output or routes it to repair/human review. A schema only checks shape; it does not prove the claim is true.</li>
+      <li><strong>Faithfulness check:</strong> yes, when it runs on the live answer and blocks, rewrites, or escalates unsupported claims. When you run faithfulness offline to compare model versions, it is an evaluation metric, not a runtime guardrail. Same check; different role.</li>
+      <li><strong>Tool authorization:</strong> yes — this is a canonical authorization guardrail. The allowlist, identity, tenant scope, argument validation, and human approval must live outside the model. The model's request is not permission.</li>
+    </ul>
+  </div>
+
+  <h3>Mostly deterministic, but not necessarily certain</h3>
+  <p>It is fair to say that <strong>guardrail enforcement is often deterministic</strong>: once a policy receives a normalized result, it can apply a fixed rule such as <code>if tool_not_allowed: deny</code> or <code>if schema_invalid: abstain</code>. The same inputs and policy should produce the same route. That is a valuable property for authorization, schema gates, spending limits, tenant boundaries, and other hard constraints.</p>
+  <p>But do not confuse a deterministic decision rule with a certain decision signal. “Is this claim supported?” may come from exact citation matching, an entailment model, an embedding threshold, or an LLM judge. Those detectors can be probabilistic, threshold-sensitive, incomplete, or wrong. The policy can deterministically say “fail closed whenever the checker returns unsupported” while the checker remains uncertain about the world.</p>
+  <div class="callout">
+    <p class="callout-title">Your citation example, tightened</p>
+    <p>If the system has correctly extracted the claims, and the support checker returns <code>supported_claims = 0</code>, then a rule can always route to the fail-closed fallback. That is deterministic <em>conditional on the check result</em>. It is not proof that the response contained no support: citation presence is not citation relevance, and citation relevance is not entailment. Also define what happens on checker timeout or error; fail-closed systems treat that state as “not verified,” not as approval.</p>
+  </div>
+  <p>A useful interview sentence is: <strong>“The enforcement policy is deterministic and fail-closed, but some of its inputs — retrieval, claim extraction, faithfulness scoring, and model-based judging — are probabilistic. Therefore we measure false accepts and false rejects rather than claiming 100% correctness.”</strong></p>
+
+  <div class="flow">
+    <span class="node"><span class="node-title">Govern</span><span class="node-sub">risk, scope, roles</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Ground</span><span class="node-sub">versioned sources</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Constrain</span><span class="node-sub">schema + policy</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Verify</span><span class="node-sub">claims + citations</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Authorize</span><span class="node-sub">tools + approval</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Record</span><span class="node-sub">audit + escalation</span></span>
+  </div>
+
+  <p>This is the interview answer you want: not “we added a toxicity filter,” but “we placed independent controls around the model and fail closed when a higher-risk boundary is not satisfied.” NIST's AI RMF treats generative-AI risk as a lifecycle concern spanning governance, mapping, measurement, and management; its Generative AI Profile explicitly calls out confabulation, data privacy, information integrity, human-AI configuration, pre-deployment testing, and incident disclosure. <a href="https://www.nist.gov/itl/ai-risk-management-framework">See the AI RMF</a> and <a href="https://doi.org/10.6028/NIST.AI.600-1">Generative AI Profile</a>.</p>
+
+  <h2>A financial-RAG answer, layer by layer</h2>
+  <p>Imagine a KYC analyst asks whether a document supports a particular review outcome. The system should not jump directly from question to prose. Walk the boundaries:</p>
+  <ol>
+    <li><strong>Govern and scope.</strong> Define the allowed use: document assistance and evidence finding, not an invisible autonomous approval. Identify the user role, data sensitivity, retention, and the point where a human must decide.</li>
+    <li><strong>Ground in authoritative data.</strong> Retrieve from versioned policy or case sources, preserve source identity and timestamps, and keep tenant or permission boundaries intact. A model cannot repair an untrusted source.</li>
+    <li><strong>Constrain the output.</strong> Require a schema such as <code>{decision, claims[], citations[], uncertainty}</code>. Reject malformed output instead of guessing how to parse it.</li>
+    <li><strong>Verify claims.</strong> Check every claim against retrieved evidence. Your capstone already separates structural citation integrity from faithfulness; keep both. A citation is a pointer, not proof.</li>
+    <li><strong>Authorize actions.</strong> Allowlist tools, validate arguments, enforce identity and least privilege, and require explicit approval for consequential writes. The model may request <code>approve_case</code>; that does not mean the application may execute it.</li>
+    <li><strong>Record and escalate.</strong> Log the model/version, prompt or policy version, retrieved source ids, tool calls, decisions, failures, overrides, and human disposition. If evidence, schema, authorization, or confidence is insufficient, abstain and route to a person.</li>
+  </ol>
+  <p class="sidenote"><strong>Residual risk is still risk.</strong> A layered design reduces failure probability and limits blast radius. It does not prove the system is safe. Measure the controls on representative cases, monitor them after deployment, and document what remains outside the system's competence.</p>
+
+  <h2>Fail closed, not confidently forward</h2>
+  <p><strong>Fail closed</strong> means a failed safety check produces no consequential action by default. It may return a useful explanation such as <code>needs_review</code>, but it does not silently continue with an unsupported claim or unauthorized tool call. This is different from “always refuse”: safe systems can proceed when all required checks pass and can explain which boundary caused an abstention when they do not.</p>
+
+  <div class="callout">
+    <p class="callout-title">The control hierarchy</p>
+    <p>Use the strongest mechanism available for the property you need:</p>
+    <ul>
+      <li>Need valid shape? Use schema validation.</li>
+      <li>Need a source-backed claim? Use citation and claim-level evidence checks.</li>
+      <li>Need to prevent an action? Use authorization and approval outside the model.</li>
+      <li>Need a trace? Use structured audit events.</li>
+      <li>Need safe handling of uncertainty? Use abstention and human escalation.</li>
+      <li>Need less variation? Tune sampling — but never mistake that for any of the controls above.</li>
+    </ul>
+  </div>
+
+  <h2>Temperature and top-p are sampling controls</h2>
+  <p>At each generation step, a language model produces a probability distribution over possible next tokens. <strong>Temperature</strong> rescales the logits before converting them into probabilities. Lower temperature sharpens the distribution toward the most likely tokens; higher temperature flattens it and permits more variation. It changes how the model samples, not what the application permits.</p>
+  <p><strong>Top-p</strong>, also called nucleus sampling, sorts candidate tokens by probability and keeps the smallest set whose cumulative probability reaches <code>p</code>. Sampling then happens inside that dynamic set. Lower <code>p</code> cuts more of the low-probability tail; <code>top_p=1</code> does not truncate the distribution. The nucleus-sampling paper shows why decoding strategy alone can change quality even when the underlying model is unchanged. <a href="https://arxiv.org/abs/1904.09751">Read Holtzman et al.</a></p>
+
+  <div class="flow">
+    <span class="node"><span class="node-title">Logits</span><span class="node-sub">model preferences</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Temperature</span><span class="node-sub">reshape probabilities</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Top-p</span><span class="node-sub">cut the tail</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Sample</span><span class="node-sub">choose a token</span></span>
+  </div>
+
+  <p>For a compliance-oriented answer, you might choose conservative sampling to reduce unnecessary variation. That is an operational choice to evaluate, not a safety guarantee. A low-temperature false claim is still false; a high-temperature answer is not automatically unsafe. Claims, permissions, schemas, and escalation must be enforced by application controls.</p>
+
+  <h2>Build the control plane</h2>
+  <p><code>exercises/lesson0010/guardrail_plane.py</code> uses two fictional answer candidates and a tiny policy context. Its claim check is deliberately exact-match and pedagogical, not a replacement for the NLI and evaluation work from lessons 5 and 7. The point is to see independent checks compose into a fail-closed decision.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run guardrail_plane.py</code> from <code>exercises/lesson0010/</code>. The clean candidate passes schema and claim checks but waits for approval before routing the case to a human.</li>
+    <li>Run <code>uv run guardrail_plane.py --approve</code>. The candidate now passes all three controls. Approval changed the host policy; it did not change the proposed model output.</li>
+    <li>Run <code>uv run guardrail_plane.py --scenario risky --approve</code>. Even with approval enabled, the candidate abstains because one claim is unsupported and <code>approve_ticket</code> is not an allowed tool. This is defense in depth.</li>
+    <li>Read the sampling table. Change <code>--temperature 1.2</code> and <code>--top-p 0.60</code>. The probability shape and retained token set change, but no tool becomes authorized and no claim becomes supported.</li>
+    <li><strong>Say the answer aloud.</strong> “I use a control plane containing versioned policy, layered guardrails, measurements, audit, and escalation around the data plane. Measurements drive routing per request and policy, threshold, rollout, or rollback decisions across releases. Temperature and top-p control output variability; they are not safety enforcement.”</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Ask about schema-constrained output, prompt injection versus authorization, why sampling can affect evaluation variance, how to define an escalation policy, or how these controls differ for document Q&amp;A versus fraud or underwriting prediction. We will keep the fintech examples hypothetical and never turn this lesson into permission to use AI at work.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the script. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Safety and sampling</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Fail closed means a failed check does not produce a consequential action. The system can abstain, explain the failed boundary, and escalate.">
+        <p class="q-text">What does fail-closed behavior mean?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">on failure it refuses</button>
+          <button type="button" class="quiz-option">on failure it resumes</button>
+          <button type="button" class="quiz-option">on failure it retries</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Top-p keeps the smallest retained set whose cumulative probability reaches p, removing more of the low-probability tail as p decreases.">
+        <p class="q-text">What is the top-p nucleus?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">the smallest retained set</button>
+          <button type="button" class="quiz-option">the broadest retained set</button>
+          <button type="button" class="quiz-option">the narrower retained set</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Lower temperature sharpens the token distribution and usually reduces variation. It does not validate claims or authorize tools.">
+        <p class="q-text">What does lower temperature primarily do?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">it sharpens token choices</button>
+          <button type="button" class="quiz-option">it controls claim choices</button>
+          <button type="button" class="quiz-option">it protects model choices</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Read NIST's <a href="https://www.nist.gov/itl/ai-risk-management-framework">AI Risk Management Framework</a> for the governance, measurement, and management lens, then the <a href="https://doi.org/10.6028/NIST.AI.600-1">Generative AI Profile</a> for confabulation, provenance, pre-deployment testing, monitoring, and incident handling. For sampling, read <a href="https://arxiv.org/abs/1904.09751">The Curious Case of Neural Text Degeneration</a>, which introduced nucleus sampling. The official <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP tools specification</a> is the concrete reminder that tool safety and user approval belong at the application boundary.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#guardrail">guardrail</a>, <a href="../reference/glossary.html#control-plane">control plane</a>, <a href="../reference/glossary.html#measurement">measurement</a>, <a href="../reference/glossary.html#fail-closed">fail closed</a>, <a href="../reference/glossary.html#abstention">abstention</a>, <a href="../reference/glossary.html#temperature">temperature</a>, <a href="../reference/glossary.html#top-p">top-p</a>.</p>
+    <p class="next">The safety/control-plane section is started. Next, reinforce the data-architecture branch in <a href="../lessons/0011-vector-or-graph.html">lesson 11</a>: vector versus graph retrieval, fixed-size versus semantic chunking, and a concise trade-off answer grounded in the RAG spine you already built.</p>
+  </footer>
+</main>
+</body>
+</html>

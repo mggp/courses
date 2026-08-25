@@ -72,6 +72,10 @@
   Primary source for nucleus (`top_p`) sampling: sample from the smallest dynamic set whose probability mass reaches p. Use for: temperature/top-p interview answers and sampling tradeoffs.
 - [Docs: Neo4j — What is a graph database?](https://neo4j.com/docs/getting-started/graph-database/)
   Official graph-database introduction: nodes, relationships, properties, and graph traversal. Use for: vector versus graph data architecture, relationship-heavy fraud and ownership questions.
+- [Docs: Amazon Bedrock — How content chunking works for knowledge bases](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html)
+  Official comparison of fixed-size, hierarchical, and semantic chunking, including overlap, sentence boundaries, semantic thresholds, and the extra cost of model-based semantic chunking. Use for: lesson 11's chunking trade-offs and truthful cloud-platform vocabulary.
+- [Guide: Microsoft Azure Architecture Center — RAG chunking phase](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-chunking-phase)
+  Official architecture guidance comparing fixed-size, sentence/structure-aware, semantic, and custom chunking. Use for: lesson 11's warning that chunk size and overlap are corpus-dependent and must be evaluated.
 - [Docs: Amazon Bedrock — Overview](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html)
   Official Bedrock overview. Use for: truthful cloud-platform architecture discussion: model inference, managed features, IAM, networking, observability, and cost.
 - [Docs: Amazon Bedrock Knowledge Bases](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html)
@@ -97,4 +101,4 @@
 - Retrieval-metric coverage is now closed (recall@k, precision@k/context precision, MRR, NDCG, and the set-vs-rank rule all have glossary entries and sources; see LR-0009).
 - The capstone (lesson 7) is delivered. Remaining unverified: a practitioner guide on a citation/attribution UI or an evaluation dashboard.
 - Prediction track has begun with local sparse text classification (lesson 8). Still missing before the fintech applications: verified sources on label design and class imbalance, probability calibration, LLM-as-classifier with structured output, structured/tabular classification, and anomaly detection. Do not claim the fictional support-ticket baseline transfers to fraud, underwriting, or credit risk.
-- Interview-first gaps now have verified sources. Still missing before interview drills become production claims: hands-on cloud AI work, framework experience beyond the learner's personal LangGraph/MCP work, and a verified source on fixed-size versus semantic chunking. The roadmap is `reference/interview-roadmap.html`.
+- Interview-first gaps now have verified sources. Still missing before interview drills become production claims: hands-on cloud AI work and framework experience beyond the learner's personal LangGraph/MCP work. The roadmap is `reference/interview-roadmap.html`.

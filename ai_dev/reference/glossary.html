@@ -18,13 +18,17 @@
 
   <p id="rag"><strong>RAG (Retrieval-Augmented Generation)</strong>: A pattern where a model answers a question by first pulling relevant excerpts from a document store, then generating a response conditioned on those excerpts. <em>Avoid:</em> "talking to your documents", "AI over your data".</p>
 
-  <p id="chunking"><strong>Chunking</strong>: Splitting a source document into small pieces that can be retrieved independently. <em>Avoid:</em> "splitting", "segmentation".</p>
+  <p id="chunking"><strong>Chunking</strong>: Splitting a source document into small pieces that can be retrieved independently. Chunk boundaries affect recall, precision, faithfulness, citation granularity, and context cost. <em>Avoid:</em> "splitting", "segmentation".</p>
+
+  <p id="fixed-size-chunking"><strong>Fixed-size chunking</strong>: Cutting a document by a token or word budget, usually with overlap between adjacent chunks. It is predictable and inexpensive, but a boundary can split a definition, table, or argument. Use it as a reproducible baseline, not a universal optimum.</p>
+
+  <p id="semantic-chunking"><strong>Semantic chunking</strong>: Placing chunk boundaries where sentence or topic meaning changes, often using a model-derived distance or similarity threshold. It can preserve coherent units, but adds processing cost, parameter sensitivity, and a need for a maximum chunk size. <em>Avoid:</em> treating "semantic" as a quality guarantee.</p>
 
   <p id="embedding"><strong>Embedding</strong>: An array of numbers produced by an embedding model that maps text into a vector space where similar meaning sits nearby. <em>Avoid:</em> "vectorization" when you mean the model output.</p>
 
   <p id="cosine-similarity"><strong>Cosine similarity</strong>: The cosine of the angle between two vectors, used as a measure of how close two embeddings are; 1 means identical direction, 0 means orthogonal. <em>Avoid:</em> "score" without saying of what.</p>
 
-  <p id="retrieval"><strong>Retrieval</strong>: The step that embeds a query and returns the chunks whose vectors are closest to the query's vector.</p>
+  <p id="retrieval"><strong>Retrieval</strong>: The step that selects evidence for a query. It may use keyword scoring, vector similarity, graph traversal, or a measured combination of these; dense retrieval is the vector-specific case.</p>
 
   <p id="generation"><strong>Generation</strong>: The step that sends the retrieved chunks plus the question to a language model and gets back a grounded answer.</p>
 
@@ -66,6 +70,12 @@
 
   <p id="hybrid-search"><strong>Hybrid search</strong>: Running keyword and dense search for the same query and fusing the results, typically with RRF. Each system covers the other's blindness — and fusion can lose a good hit to noise, so it is measured, never trusted.</p>
 
+  <p id="graph-database"><strong>Graph database</strong>: A store that represents entities as nodes and their typed connections as edges, with properties attached to either. It makes explicit relationships, path constraints, and multi-hop traversal queryable. <em>Avoid:</em> assuming a graph can recover relationships that were never modeled or extracted.</p>
+
+  <p id="graph-traversal"><strong>Graph traversal</strong>: Following edges from one or more starting nodes while applying relationship types, filters, or hop limits. It retrieves explicit structural relationships rather than merely finding semantically similar text.</p>
+
+  <p id="vector-graph-retrieval"><strong>Vector-graph retrieval</strong>: Combining vector similarity with graph traversal, such as using a graph to constrain entities and vector search to find the source passages that support the relationship. This differs from keyword-plus-dense <a href="#hybrid-search">hybrid search</a>.</p>
+
   <p id="candidate-pool"><strong>Candidate pool</strong>: The top-N chunks the recall stage hands to the reranker. Reranking can only re-order what is in the pool — recall is the floor. Too small a pool drops the right chunk before the reranker sees it; too large a pool makes the reranker rank a long tail of junk it scores badly. Measured, not guessed.</p>
 
   <p id="reranking"><strong>Reranking</strong>: The second stage of retrieval — a cross-encoder re-orders the recall stage's candidate pool by reading each (query, passage) pair together. The canonical fix for ordering failures (right chunk ranked fifth, generator reads three), and the first tool to rescue the paraphrase row without touching the query. In RAG the generator reads a <em>set</em>, so the value is re-selecting which chunks cross the k cut, not fine-grained ordering — rank matters to a generator only where the cut falls. Its scores are uncalibrated — only the order matters — and over the whole corpus it can trade one row for another, so it is measured, never trusted. From Nogueira &amp; Cho, 2019. <em>Avoid:</em> "rescoring" without noting the order is what changes.</p>
@@ -97,6 +107,50 @@
   <p id="token"><strong>Token</strong>: A unit of text a model reads and writes — roughly a word fragment, not a word. WordPiece tokenizers call these units "word pieces": "embedding" is three pieces (<code>em, ##bed, ##ding</code>). <em>Avoid:</em> "word" when you mean token.</p>
 
   <p id="hallucination"><strong>Hallucination</strong>: Confident output that does not match the source material or reality. RAG reduces — it does not eliminate — hallucination.</p>
+
+  <h2>Agent systems and integration</h2>
+
+  <p id="agent"><strong>Agent</strong>: An LLM-driven control loop that can choose actions, call tools, read observations, and continue or stop under application policy. Unlike a fixed workflow, the next step is selected dynamically. <em>Avoid:</em> calling every LLM feature an agent.</p>
+
+  <p id="workflow"><strong>Workflow</strong>: An LLM-and-tool system whose path is mostly specified by application code. It is usually more predictable and easier to test than an agent, but less flexible when the number or shape of steps is unknown.</p>
+
+  <p id="tool"><strong>Tool</strong>: A schema-described callable capability that an agent can invoke to read data, perform computation, or change external state. Its input validation, output contract, permissions, timeout, and side effects belong to the application boundary. <em>Avoid:</em> treating a tool description as authorization.</p>
+
+  <p id="resource"><strong>Resource</strong>: Addressable context or data made available for a user or model to read. It is the passive-data counterpart to a tool; a policy document is a resource, while writing a ticket note is a tool call.</p>
+
+  <p id="prompt-template"><strong>Prompt template</strong>: A reusable message or message pattern that shapes an interaction. It supplies instructions or context; it does not itself execute an operation or grant permission.</p>
+
+  <p id="skill"><strong>Skill</strong>: A reusable package of instructions and supporting material, typically a directory containing <code>SKILL.md</code> plus optional scripts, references, and assets. A skill teaches an agent how to perform a class of work; it is not a callable tool.</p>
+
+  <p id="mcp"><strong>MCP (Model Context Protocol)</strong>: An open protocol for connecting LLM applications to external data and capabilities. Its host/client/server model standardizes access to server-provided resources, prompts, and tools. It does not define the host's planning loop, memory store, or authorization policy. <em>Avoid:</em> “MCP is the agent.”</p>
+
+  <p id="observation"><strong>Observation</strong>: The result returned by a tool or other environment interaction, fed back into the agent loop so the next decision is based on ground truth rather than an assumed outcome.</p>
+
+  <p id="multi-agent"><strong>Multi-agent system</strong>: Multiple agents coordinating on one task. Its defensible use case is a measured need for independent parallel work, context isolation, or separate responsibilities; it also adds token, coordination, latency, and debugging costs.</p>
+
+  <h2>Safety and sampling</h2>
+
+  <p id="guardrail"><strong>Guardrail</strong>: A broad operational term for a control that constrains, checks, authorizes, measures, or routes an AI system at a particular boundary. It is not one universal mechanism or formal taxonomy. A prompt instruction can be one input to a guardrail design, but it is not enforcement by itself.</p>
+
+  <p id="constrain"><strong>Constrain</strong>: Narrow the set of outputs or actions that are allowed before execution. Examples include a declared output schema, an enum, a tool allowlist, a tenant boundary, or a maximum iteration count. A prompt-only restriction is a soft constraint unless an external control enforces it.</p>
+
+  <p id="check"><strong>Check</strong>: Evaluate a proposed input, output, claim, or action against a rule or evidence and return a pass/fail/review result. Schema validation, faithfulness checking, and permission checking are different checks; a check becomes a runtime guardrail when it gates what happens next.</p>
+
+  <p id="route"><strong>Route</strong>: Select the next safe path after a check, such as proceed, retry, repair, fallback, refuse, or human review. <code>needs_review</code> is an explicit route for uncertainty or risk.</p>
+
+  <p id="control-plane"><strong>Control plane</strong>: The policies, configuration, identity and approvals, runtime guardrails, measurements, audit events, rollout decisions, and escalation paths that govern an AI system. It surrounds the data-plane work—retrieval, inference, tool execution, and response delivery—rather than asking the model to enforce every rule on its own.</p>
+
+  <p id="measurement"><strong>Measurement</strong>: An observed signal about system behavior or risk, such as unsupported-claim rate, false-accept rate, latency, cost, authorization denials, or human overrides. A measurement becomes a control-plane input when a defined threshold triggers routing, an alert, recalibration, a configuration change, rollout, or rollback; otherwise it is telemetry or reporting.</p>
+
+  <p id="fail-closed"><strong>Fail closed</strong>: When a required check fails, the system performs no consequential action by default. It may abstain, explain the failed boundary, or escalate to a human instead of silently proceeding.</p>
+
+  <p id="abstention"><strong>Abstention</strong>: An explicit decision not to answer or act automatically because evidence, confidence, authorization, or another required condition is insufficient. It is a controlled outcome, not an exception that should be hidden.</p>
+
+  <p id="structured-output"><strong>Structured output</strong>: Model output constrained to a declared schema, such as an object with typed fields for a decision, claims, citations, and uncertainty. Schema validation can be a runtime guardrail when it gates the next step; it checks shape, not truth.</p>
+
+  <p id="temperature"><strong>Temperature</strong>: A sampling control that rescales model logits before probabilities are computed. Lower values sharpen the distribution toward likely tokens; higher values flatten it and permit more variation. It changes generation variability, not authorization or truth.</p>
+
+  <p id="top-p"><strong>Top-p</strong> (nucleus sampling): A sampling control that keeps the smallest set of highest-probability tokens whose cumulative probability reaches <code>p</code>, then samples within that dynamic set. Lower <code>p</code> cuts more of the low-probability tail; it is not a safety filter.</p>
 
   <h2>Evaluation</h2>
 

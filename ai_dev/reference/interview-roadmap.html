@@ -22,7 +22,9 @@
   <h2>Current coverage</h2>
   <p><strong>Strong already.</strong> <a href="../lessons/0001-rag-from-the-ground-up.html">RAG mechanics</a>, chunking, dense/BM25/hybrid retrieval, query rewriting and HyDE, reranking, recall/precision/faithfulness, citations and attribution, context-window dilution, and financial-RAG abstention/guardrail instincts.</p>
   <p><strong>Started.</strong> <a href="../lessons/0008-not-every-ai-problem-is-rag.html">Classification versus retrieval</a>: labels, held-out evaluation, and thresholds as policy.</p>
-  <p><strong>Needs interview-first coverage.</strong> Agent architecture, tools/skills/MCP, guardrails, sampling controls, prompt versus context engineering, vector versus graph data, semantic chunking, cloud architecture, and concise Python/FastAPI/SOLID answers.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0009-the-boundary-is-the-system.html">Agent systems and integration boundaries</a>: workflow versus agent, tools/resources/prompts/skills, MCP's host/client/server boundary, and the measurable case for multi-agent systems.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0010-safety-is-a-control-plane.html">Safety and the control plane</a>: layered guardrails, fail-closed abstention, tool authorization, auditability, and temperature/top-p as sampling controls rather than safety enforcement.</p>
+  <p><strong>Needs interview-first coverage.</strong> Prompt versus context engineering, cloud architecture, and concise Python/FastAPI/SOLID answers.</p>
 
   <h2>Truthful baseline</h2>
   <ul>
@@ -35,13 +37,13 @@
   <h2>Adaptive interview sections</h2>
 
   <h3>A · Agent systems and integration boundaries</h3>
-  <p><strong>Diagnostic:</strong> strong foundation. You already distinguish an LLM from the surrounding control loop and can connect it to LangGraph/FastAPI/MCP work. Refine the exact boundaries: MCP standardizes access to tools/resources/prompts, not planning or memory; skills are reusable instruction/resource packages; multi-agent needs a measurable reason such as independent parallel work or context isolation.</p>
+  <p><strong>Diagnostic:</strong> strong foundation. <a href="../lessons/0009-the-boundary-is-the-system.html">Lesson 9</a> refines the exact boundaries: MCP standardizes access to tools/resources/prompts, not planning or memory; skills are reusable instruction/resource packages; multi-agent needs a measurable reason such as independent parallel work or context isolation. Next step is a short verbal drill after you run the offline trace.</p>
 
   <h3>B · Safety and control plane</h3>
-  <p><strong>Primary gap.</strong> Cover guardrails as layered controls rather than a prompt trick: authoritative/versioned data, retrieval quality, claim-level evidence, structured output, tool authorization, audit logs, abstention, and human escalation. Add sampling controls — especially top-p, which was missing in the drill — and turn the existing financial-RAG instincts into a concise answer.</p>
+  <p><strong>Primary gap.</strong> <a href="../lessons/0010-safety-is-a-control-plane.html">Lesson 10</a> covers guardrails as layered controls rather than a prompt trick: authoritative/versioned data, retrieval quality, claim-level evidence, structured output, tool authorization, audit logs, abstention, and human escalation. It also adds sampling controls — especially top-p — and turns the existing financial-RAG instincts into a concise answer. Next step is a short verbal drill after you run the two scenarios.</p>
 
   <h3>C · Data and knowledge architecture</h3>
-  <p><strong>Diagnostic:</strong> strong vector-versus-graph intuition. Reinforce the precise terms: vector similarity retrieves semantic evidence; graph traversal exposes explicit relationships. Add fixed-size versus semantic chunking and turn the existing RAG metrics work into an interview answer, not a re-teaching of the full RAG spine.</p>
+  <p><strong>Diagnostic:</strong> strong vector-versus-graph intuition. <a href="../lessons/0011-vector-or-graph.html">Lesson 11</a> sharpens the precise terms: vector similarity retrieves semantic evidence; graph traversal exposes explicit relationships; vector-graph hybrid retrieval can do both. It adds fixed-size versus semantic chunking and turns the existing RAG metrics work into an interview answer, not a re-teaching of the full RAG spine. Next step is a short verbal drill after you inspect the chunk boundaries.</p>
 
   <h3>D · Credible delivery story</h3>
   <p><strong>Primary practice area.</strong> Turn genuine FastAPI/Django/LangGraph/MCP work into concise answers for FastAPI versus Flask and software-design principles. For Bedrock, Azure/Foundry, and Vertex, practice an honest gap answer that continues into architecture, evaluation, IAM/networking, latency, cost, monitoring, and a personal-project learning plan.</p>

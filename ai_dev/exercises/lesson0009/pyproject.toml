@@ -1,0 +1,6 @@
+[project]
+name = "lesson0009"
+version = "0.1.0"
+description = "Offline agent, tool, resource, skill, and MCP boundary exercise"
+requires-python = ">=3.13"
+dependencies = []

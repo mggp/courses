@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 11: Similarity is not a relationship — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 11 · Interview-first · Data and knowledge architecture</p>
+    <h1>Similarity is not a relationship</h1>
+    <p class="lede">Choose the retrieval operation that matches the question, then measure whether your chunk boundaries preserve the evidence.</p>
+    <p class="meta">~35 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0010-safety-is-a-control-plane.html">lesson 10</a> &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Your diagnostic already had the important vector-versus-graph intuition. This lesson makes it interview-ready: vector similarity finds semantically related evidence, graph traversal follows explicit relationships, and a hybrid system can use both. The second win is to explain fixed-size versus semantic chunking without claiming that “semantic” automatically means better.</p>
+  </div>
+
+  <h2>Choose the retrieval operation, not the product</h2>
+  <p>A <strong>vector index</strong> represents text or entities as points in an embedding space and retrieves nearby points. It is a strong fit when the question is about meaning in unstructured text: “What does the policy say about exposure limits?” Similar wording is not required; semantic similarity is the signal.</p>
+  <p>A <strong>graph database</strong> represents entities as nodes and facts about their connections as typed edges with properties. A traversal follows those edges and applies explicit constraints. It is a strong fit when the question is about paths, ownership, dependencies, or multi-hop relationships: “Which subsidiaries are ultimately controlled by this beneficial owner?”</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Question</span><span class="node-sub">what kind of answer?</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Vector</span><span class="node-sub">similar evidence</span></span>
+    <span class="arrow">or</span>
+    <span class="node"><span class="node-title">Graph</span><span class="node-sub">explicit paths</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Answer</span><span class="node-sub">with provenance</span></span>
+  </div>
+
+  <h3>Use a hybrid when the question has two jobs</h3>
+  <p>Many useful questions need both structure and text. Use the graph to find the relevant entities or path, then use vector retrieval to find the filing or paragraph that explains and supports it. Or retrieve text first, extract entities, and traverse the resulting subgraph. The boundary is architectural; it is not tied to a particular vendor.</p>
+  <ul>
+    <li><strong>Vector:</strong> semantic evidence, paraphrases, policies, explanations, and unstructured passages.</li>
+    <li><strong>Graph:</strong> explicit entities, typed relationships, multi-hop paths, filters, and consistency constraints.</li>
+    <li><strong>Hybrid:</strong> relationship-constrained evidence, such as “which controlled companies are mentioned in the filing, and what passage supports the link?”</li>
+  </ul>
+  <div class="callout">
+    <p class="callout-title">Do not confuse two meanings of hybrid</p>
+    <p>Earlier lessons used <strong>hybrid search</strong> for keyword plus dense retrieval. Here, <strong>vector-graph hybrid</strong> means semantic retrieval plus graph traversal. Both are valid combinations, but they solve different blind spots and should be named precisely.</p>
+  </div>
+
+  <h3>Beneficial ownership, end to end</h3>
+  <p>Suppose the question is: <strong>“Which companies are ultimately controlled by Elena Ruiz, and which filing supports each relationship?”</strong> The system does not ask one database to magically answer everything. It turns source records into two connected representations:</p>
+  <pre><code>Elena Ruiz ──BENEFICIAL_OWNER_OF──&gt; Northstar Holdings
+Northstar Holdings ──OWNS 80%──&gt; Meridian Finance
+Meridian Finance ──OWNS_VOTING_SHARES──&gt; Harbor Credit</code></pre>
+  <ol>
+    <li><strong>Ingest and extract:</strong> parse filings and registry records into entities and typed edges. Every edge keeps provenance, for example <code>p1</code>, <code>p2</code>, or <code>p3</code> for the source passage that created it.</li>
+    <li><strong>Traverse the graph:</strong> start at Elena Ruiz and follow allowed ownership edges. The result is a path to Meridian Finance and then Harbor Credit. This is why graph traversal is useful: it exposes the explicit chain instead of hoping three separate paragraphs happen to rank together.</li>
+    <li><strong>Retrieve the evidence:</strong> use the edge provenance to fetch the exact passages, or use vector retrieval over the filings to find the relevant prose. The vector step supplies readable evidence and citations; it does not decide whether the ownership path exists.</li>
+    <li><strong>Apply the domain rule:</strong> only call the result “ultimate control” if the business/legal policy says this edge combination qualifies. Otherwise report the narrower fact: “an ownership path was found.” Beneficial ownership, legal control, and economic ownership are not interchangeable labels.</li>
+  </ol>
+  <div class="callout">
+    <p class="callout-title">What the hybrid answer might contain</p>
+    <p>“The graph finds the path Elena Ruiz → Northstar Holdings → Meridian Finance → Harbor Credit. Passage <code>p1</code> supports Elena's beneficial ownership of Northstar; <code>p2</code> supports Northstar's 80% ownership of Meridian; <code>p3</code> supports Meridian's voting-share relationship with Harbor. Under the stated control rule, Harbor qualifies; without that rule, the system should claim only that it found this ownership path.”</p>
+  </div>
+  <p>Interview-safe answer: <strong>definition → trade-off → example → limit</strong>. “Vector search is good for semantic evidence but does not guarantee an explicit relationship. Graph traversal makes relationships and constraints queryable but requires entity and edge modeling. For a beneficial-ownership question, I would use graph traversal to establish the path and vector retrieval to fetch the source passages, then evaluate recall, precision, faithfulness, latency, and maintenance cost.”</p>
+
+  <h2>Chunking changes what retrieval can see</h2>
+  <p>Chunking is not merely a preprocessing detail. It defines the units that can be retrieved, cited, reranked, and passed to the generator. The same embedding model can behave differently when the boundaries change.</p>
+  <ul>
+    <li><strong>Fixed-size chunking</strong> cuts by a token or word budget, usually with overlap. It is predictable, inexpensive, easy to reproduce, and a useful baseline. Its weakness is that a boundary can split a definition, table, or argument.</li>
+    <li><strong>Semantic chunking</strong> tries to place boundaries where topic or sentence meaning changes. It can preserve more coherent units and variable-length context, but it costs more, depends on thresholds or a model, and still needs a maximum size. “Semantic” is a hypothesis about useful boundaries, not a quality guarantee.</li>
+    <li><strong>Structure-aware or hierarchical chunking</strong> uses headings, sections, parent/child relationships, or document layout. It can retrieve a precise child while returning a broader parent for context, at the cost of more indexing and assembly logic.</li>
+  </ul>
+  <p>Overlap can preserve continuity across a fixed boundary, but it duplicates content and can increase index size and context noise. A larger chunk may preserve context while lowering retrieval precision; a smaller chunk may improve precision while losing the surrounding qualifier. The correct setting is corpus- and query-dependent.</p>
+
+  <h2>Measure the chunker, do not admire it</h2>
+  <p>To compare chunking strategies, hold the corpus, embedding model, retriever, top-k, and generator constant. Change only the chunker. Then use a held-out query set with known relevant evidence and compare:</p>
+  <ul>
+    <li><strong>Recall@k:</strong> did the needed evidence enter the retrieved set?</li>
+    <li><strong>Precision@k:</strong> how much of the retrieved set was relevant rather than noise?</li>
+    <li><strong>Faithfulness and attribution:</strong> did the answer use the retrieved evidence correctly and cite the supporting unit?</li>
+    <li><strong>Operational cost:</strong> ingestion time, index size, retrieval latency, context tokens, and maintenance complexity.</li>
+  </ul>
+  <p>A chunker can improve recall while hurting faithfulness by returning too much loosely related context. It can improve precision while hurting recall by splitting the only complete answer across separate chunks. This is why chunking belongs in the evaluation loop from lesson 7, not in a list of universal magic numbers.</p>
+
+  <h2>Build the retrieval decision card</h2>
+  <p><code>exercises/lesson0011/retrieval_architecture.py</code> is an offline inspection tool. It recommends vector, graph, or hybrid retrieval from the shape of a question, then prints the boundaries produced by a fixed-size baseline and a deliberately transparent semantic proxy. The proxy uses lexical overlap; it is not an embedding model or a production chunker.</p>
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run retrieval_architecture.py</code> from <code>exercises/lesson0011/</code>. The default question asks for ownership relationships and supporting filing evidence, so the recommendation should be <code>HYBRID</code>.</li>
+    <li>Run <code>uv run retrieval_architecture.py --show-chunks</code>. Compare where fixed-size chunks cut the document with where the semantic proxy changes topic.</li>
+    <li>Try <code>uv run retrieval_architecture.py --query "What controls limit aggregate exposure?" --show-chunks</code>. This is primarily a vector evidence question.</li>
+    <li>Try <code>uv run retrieval_architecture.py --query "Which entities are ultimately owned by Elena Ruiz?"</code>. This is primarily a graph traversal question.</li>
+    <li>Change <code>--fixed-size</code>, <code>--overlap</code>, <code>--semantic-max</code>, and <code>--threshold</code>. Treat the printed boundaries as hypotheses; your evaluation set decides whether they help.</li>
+    <li><strong>Say the answer aloud.</strong> “I choose vector retrieval for semantic evidence, graph traversal for explicit multi-hop relationships, and a hybrid when I need both a relationship-constrained set and source passages. For chunking I start with a reproducible baseline, then compare semantic or hierarchical boundaries using held-out retrieval, faithfulness, latency, and cost metrics.”</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Ask about graph schemas, entity resolution, vector indexes inside graph databases, hierarchical retrieval, overlap, or how to turn the decision card into a credible answer for a financial-RAG system. We will keep the examples hypothetical and separate local exercises from production claims.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the script. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Vector, graph, and chunking</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="Graph traversal is strongest when explicit edges, paths, ownership, or other relationships answer the question.">
+        <p class="q-text">Which question most strongly calls for graph traversal?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">who owns which subsidiary</button>
+          <button type="button" class="quiz-option">what explains this policy</button>
+          <button type="button" class="quiz-option">which chunks answer these</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="1" data-explain="Fixed-size chunking uses a predictable token or word budget, usually with overlap; it is a useful reproducible baseline.">
+        <p class="q-text">What is fixed-size chunking?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">cut by topic shift on overlap</button>
+          <button type="button" class="quiz-option">cut by token size and overlap</button>
+          <button type="button" class="quiz-option">cut by page break and overlap</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Semantic chunking can preserve coherent boundaries, but it adds cost and tuning choices and still needs evaluation.">
+        <p class="q-text">Why is semantic chunking not automatically better?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">it adds cost and needs tuning</button>
+          <button type="button" class="quiz-option">it adds work and needs tuning</button>
+          <button type="button" class="quiz-option">it adds risk and needs tuning</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Change only the chunker, hold the retrieval stack fixed, and measure outcomes on held-out queries rather than selecting by intuition.">
+        <p class="q-text">How should you compare chunking strategies?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">hold retrieval fixed and measure outcomes</button>
+          <button type="button" class="quiz-option">hold retrieval fixed and follow intuition</button>
+          <button type="button" class="quiz-option">hold retrieval fixed and inspect examples</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A vector-graph hybrid can use relationships to constrain the entities and vector retrieval to find the source passages that support the answer.">
+        <p class="q-text">When is hybrid retrieval useful?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">when meaning and relationships both matter</button>
+          <button type="button" class="quiz-option">when wording and relationships both matter</button>
+          <button type="button" class="quiz-option">when phrases and relationships both matter</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Read Neo4j's <a href="https://neo4j.com/docs/getting-started/graph-database/">graph database introduction</a> for nodes, relationships, properties, and traversal. For chunking, compare Amazon Bedrock's <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html">fixed-size, hierarchical, and semantic strategies</a> with Microsoft's <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-chunking-phase">RAG chunking guidance</a>. Use the course's <a href="../reference/glossary.html#recall">retrieval metrics</a> and <a href="../reference/glossary.html#faithfulness">faithfulness</a> definitions to turn the design choice into a measured comparison.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#vector-store">vector store</a>, <a href="../reference/glossary.html#graph-database">graph database</a>, <a href="../reference/glossary.html#vector-graph-retrieval">vector-graph retrieval</a>, <a href="../reference/glossary.html#fixed-size-chunking">fixed-size chunking</a>, <a href="../reference/glossary.html#semantic-chunking">semantic chunking</a>, <a href="../reference/glossary.html#recall">recall@k</a>, <a href="../reference/glossary.html#faithfulness">faithfulness</a>.</p>
+    <p class="next">Section C is now precise enough to practice. Next: turn your genuine FastAPI/Django/LangGraph/MCP work into concise delivery answers, then handle cloud-platform gaps honestly through architecture, evaluation, IAM, latency, cost, and monitoring.</p>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,6 @@
+[project]
+name = "lesson0011"
+version = "0.1.0"
+description = "Offline vector-versus-graph retrieval and chunking exercise"
+requires-python = ">=3.13"
+dependencies = []

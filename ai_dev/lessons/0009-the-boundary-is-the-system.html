@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 9: The boundary is the system — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 9 · Interview-first · Agent systems</p>
+    <h1>The boundary is the system</h1>
+    <p class="lede">An LLM becomes an agent only when a controlled loop connects decisions to tools, observations, and stopping rules.</p>
+    <p class="meta">~35 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0008-not-every-ai-problem-is-rag.html">lesson 8</a> &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>Your interview diagnostic already had the core idea: an LLM is a component; the surrounding loop decides whether to call a tool, how to use its result, and when to stop. This lesson makes the integration boundaries precise enough to explain your real LangGraph and MCP work without turning either into a framework buzzword. The tangible win is a clean answer to: <em>what is an agent, what does MCP do, and why is this not automatically a multi-agent system?</em></p>
+  </div>
+
+  <h2>Start with the smallest honest definition</h2>
+  <p>A <strong>workflow</strong> is an LLM-and-tool system whose path is mostly fixed in code: call A, validate it, call B. An <strong>agent</strong> is a system in which the model dynamically selects the next step or tool based on the task and the observations it receives. Anthropic uses this same distinction and recommends adding complexity only when it improves a measured outcome. <a href="https://www.anthropic.com/engineering/building-effective-agents">Read the source</a> before reaching for a framework.</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">LLM</span><span class="node-sub">proposes a next step</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Tool</span><span class="node-sub">does external work</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Observation</span><span class="node-sub">returns ground truth</span></span>
+    <span class="arrow">↺</span>
+    <span class="node"><span class="node-title">Stop / continue</span><span class="node-sub">bounded by policy</span></span>
+  </div>
+  <p>The model does not magically execute Python, query a database, or know whether an action succeeded. The host application turns a model decision into a validated call, executes it, records the result, and presents that observation to the next turn. The loop needs a maximum-step bound, error handling, and a human checkpoint for consequential actions. The <a href="https://arxiv.org/abs/2210.03629">ReAct paper</a> is the research anchor for interleaving model decisions with environment actions and observations; you do not need to expose private chain-of-thought to implement the loop.</p>
+
+  <h2>Five surfaces, five jobs</h2>
+  <p>These words are easy to blur together. Keep the contracts separate:</p>
+  <ul>
+    <li><strong>Tool</strong> — a schema-described callable capability. It may read data or change external state. Treat its input, output, permissions, timeout, and side effects as an API contract.</li>
+    <li><strong>Resource</strong> — addressable context or data for the user or model to read. A policy document is a resource; “write a note to ticket T-42” is a tool call.</li>
+    <li><strong>Prompt</strong> — a message or template that shapes an interaction. It is not a tool and does not grant permission to perform an action.</li>
+    <li><strong>Skill</strong> — a reusable package of instructions and supporting material. The Agent Skills specification uses a directory with <code>SKILL.md</code> plus optional scripts, references, and assets. A skill tells an agent <em>how</em> to do a class of work; it is not itself a callable operation. <a href="https://agentskills.io/specification">Read the specification</a>.</li>
+    <li><strong>MCP</strong> — a protocol boundary for connecting an LLM application to external data and capabilities. Its current specification describes a <strong>host</strong> (the LLM application), <strong>client</strong> (a connector inside the host), and <strong>server</strong> (the service providing capabilities), with server features for resources, prompts, and tools. It standardizes integration messages and discovery; it does not choose your planning algorithm, persist your agent memory, or define your application's authorization policy. <a href="https://modelcontextprotocol.io/specification/2025-11-25">Read the MCP specification</a>.</li>
+  </ul>
+  <p class="sidenote"><strong>Interview-safe phrasing.</strong> Say “MCP standardizes how an application discovers and uses external tools, resources, and prompts.” Do not say “MCP is the agent,” “MCP provides planning,” or “MCP makes a tool safe.” Safety still belongs to the host, server, identity layer, and approval policy.</p>
+
+  <h2>MCP is a boundary, not the brain</h2>
+  <p>Think of MCP as an integration contract, similar in spirit to how a protocol lets many clients connect to many services without each pair inventing a custom interface. The host still owns the user experience and the trust decision. The model may propose a tool call; the host validates it and decides whether to run it. The server still owns the implementation and its access to data.</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Host</span><span class="node-sub">LLM app + policy</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">MCP client</span><span class="node-sub">connection inside host</span></span>
+    <span class="arrow">⇄</span>
+    <span class="node"><span class="node-title">MCP server</span><span class="node-sub">tools + resources + prompts</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">External system</span><span class="node-sub">database / API / files</span></span>
+  </div>
+  <p>The MCP tools specification describes tools as model-controlled capabilities, but it also recommends that a human can deny invocations and that the interface makes tool use visible. It further warns that tool descriptions and annotations are untrusted unless they come from a trusted server. That is an important boundary lesson: a protocol can carry a capability description; it cannot turn an untrusted capability into a trusted one. <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">Read the tools specification</a>.</p>
+
+  <h2>Build it without an LLM first</h2>
+  <p><code>exercises/lesson0009/agent_boundaries.py</code> is intentionally offline. Its deterministic <code>model_decide</code> function stands in for an LLM so you can inspect the control loop before adding model latency, token cost, or nondeterminism. The catalog is “MCP-style,” not a full MCP implementation: it makes the boundary visible without hiding the lesson inside a client library.</p>
+
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run agent_boundaries.py</code> from <code>exercises/lesson0009/</code>. Identify the four different surfaces printed before the trace: tools, a resource, a prompt, and a skill.</li>
+    <li><strong>Read the trace.</strong> The sequence is model decision → tool call → tool result → next model decision. The first tool reads a ticket. The second would write a note. The result is an <em>observation</em>, not a new instruction: the loop decides what to do with it.</li>
+    <li><strong>Notice the refusal.</strong> The default run refuses <code>add_note</code> because it can change external state. The prompt requested the action, but the prompt did not authorize it. The runtime policy did.</li>
+    <li>Run <code>uv run agent_boundaries.py --approve</code>. The model decision is unchanged; only the host's approval policy changes. This is the difference between “the model asked” and “the system allowed.”</li>
+    <li><strong>Map it to your experience.</strong> In your test-validation agent, the test runner or validator is the external capability, the test result is the observation, and the stopping rule decides whether the loop is finished. In your maintained FastAPI/MCP work, describe the integration boundary you actually configured; do not claim that MCP supplied planning, memory, or production authorization for you.</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Your interview answer</p>
+    <p>Use the course answer shape: <strong>definition → trade-off → one real example → limit or control</strong>. Example: “An agent is an LLM-driven control loop that can choose tools from environmental feedback. It is more flexible than a fixed workflow but costs more and can compound errors. I built a personal LangGraph tool that validates tests generated by a coding agent; the test result is feedback to the loop. I would bound iterations, validate tool inputs, log calls, and require approval for side effects.” Adjust the details to exactly what you built.</p>
+  </div>
+
+  <h2>Do not add agents by multiplication</h2>
+  <p>A <strong>multi-agent system</strong> is multiple agents coordinating, not merely one agent with several tools. Start with one agent. Add multiple agents only when you can name the measurable reason: independent work that can run in parallel, separate context windows, or a division of tools and responsibilities that improves evaluation. Anthropic's multi-agent research system reports the upside of parallel, context-isolated exploration alongside much higher token use and coordination complexity. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">See the engineering report</a>.</p>
+  <p>For a KYC audit, parallel independent checks might justify separate workers if the checks truly do not depend on one another. For a simple document question, multiple agents usually add latency and more failure surfaces without improving the answer. The design question is not “can I use multi-agent?” It is “what measured bottleneck does another agent remove?”</p>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the script. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Agent boundaries</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="1" data-explain="MCP standardizes an integration boundary for external capabilities. The host still owns planning, memory choices, and authorization policy.">
+        <p class="q-text">What does MCP chiefly standardize?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">planner for adaptive workflows</button>
+          <button type="button" class="quiz-option">protocol for capability access</button>
+          <button type="button" class="quiz-option">memory for prior conversations</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A tool is callable and may have side effects. A resource is read-oriented context; a skill package describes reusable instructions and supporting material.">
+        <p class="q-text">Which surface may change external state?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">a write-capable tool</button>
+          <button type="button" class="quiz-option">a read-only resource</button>
+          <button type="button" class="quiz-option">a reusable reference</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Independent parallel work and context isolation are measurable reasons to consider multiple agents. More agents also add tokens, coordination, and debugging cost.">
+        <p class="q-text">Why might multiple agents be justified?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">parallel work and context isolation</button>
+          <button type="button" class="quiz-option">cheaper calls and simpler debugging</button>
+          <button type="button" class="quiz-option">single calls and reliable debugging</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="2" data-explain="The loop makes the boundary explicit: the model proposes a call, the tool executes, the environment returns an observation, and the model decides again.">
+        <p class="q-text">Which trace shows the agent loop?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">model, plan, observation, model</button>
+          <button type="button" class="quiz-option">agent, tool, observation, model</button>
+          <button type="button" class="quiz-option">model, tool, observation, model</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Start with Anthropic's <a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a> for workflow versus agent and the “simplest system first” rule. Then read the official <a href="https://modelcontextprotocol.io/specification/2025-11-25">MCP specification</a>, especially its host/client/server model and resource, prompt, and tool features. The <a href="https://agentskills.io/specification">Agent Skills specification</a> fixes the distinction between a reusable instruction package and a callable tool. Finally, skim <a href="https://arxiv.org/abs/2210.03629">ReAct</a> for the decision/action/observation loop.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#agent">agent</a>, <a href="../reference/glossary.html#tool">tool</a>, <a href="../reference/glossary.html#resource">resource</a>, <a href="../reference/glossary.html#skill">skill</a>, <a href="../reference/glossary.html#mcp">MCP</a>, <a href="../reference/glossary.html#observation">observation</a>, <a href="../reference/glossary.html#multi-agent">multi-agent system</a>.</p>
+    <p class="next">Section A is now precise enough to practice. Next interview gap: turn guardrails into a layered control plane, including sampling controls — especially <code>top_p</code> — rather than treating safety as a prompt trick.</p>
+  </footer>
+</main>
+</body>
+</html>
