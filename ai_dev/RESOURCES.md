@@ -60,6 +60,24 @@
   A tool is a schema-described callable capability. Descriptions/annotations are untrusted unless the server is trusted; validate inputs and require approval for sensitive calls. Use for: tool safety and guardrails.
 - [Specification: Agent Skills](https://agentskills.io/specification)
   A skill is a reusable instruction-and-resource package (typically `SKILL.md` plus optional scripts/references/assets), distinct from an MCP primitive or callable tool. Use for: tools versus skills versus MCP.
+- [Docs: FastAPI — Features](https://fastapi.tiangolo.com/features/)
+  Official framework documentation for OpenAPI/JSON Schema, type-driven validation, security, dependency injection, and the Starlette/Pydantic foundations. Use for: lesson 12's FastAPI comparison.
+- [Docs: FastAPI — Concurrency and async/await](https://fastapi.tiangolo.com/async/)
+  Official explanation of Python async concepts and when concurrency helps or does not help. Use for: lesson 12's async/I/O trade-off without blanket performance claims.
+- [Docs: Flask — Using async and await](https://flask.palletsprojects.com/en/stable/async-await/)
+  Official Flask documentation explaining async views, the WSGI worker model, background-task limits, and when an ASGI-oriented framework may be appropriate. Use for: lesson 12's FastAPI-versus-Flask comparison.
+- [Specification: PEP 3333 — WSGI](https://peps.python.org/pep-3333/)
+  Python's WSGI specification, including the two-argument application callable, `environ`, `start_response`, and returned byte-string iterable. Use for: lesson 12's interview-ready WSGI boundary.
+- [Specification: ASGI 3.0](https://asgi.readthedocs.io/en/latest/specs/main.html)
+  ASGI's application and event model, including `scope`, awaitable `receive` and `send`, connection lifetime, HTTP, WebSockets, and lifecycle support. Use for: lesson 12's ASGI-versus-WSGI comparison.
+- [Python Docs: `typing.Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
+  Standard-library structural typing contract used to demonstrate ports and dependency inversion without importing a provider SDK. Use for: lesson 12's SOLID exercise.
+- [Lecture: John Ousterhout — Modular design](https://web.stanford.edu/~ouster/cgi-bin/cs190-winter18/lecture.php?topic=modularDesign)
+  Primary teaching material on deep modules, simple interfaces, information hiding, and the distinction between interface cost and implementation benefit. Use for: lesson 12's comparison between deep modules and interface segregation.
+- [Docs: Amazon Bedrock — Using models with Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html)
+  Official foundation-model definition and model-ID guidance. Use for: lesson 12's distinction between broadly reusable foundation models and merely pre-trained models.
+- [Docs: Microsoft Azure — What is Azure RBAC?](https://learn.microsoft.com/en-us/azure/role-based-access-control/overview)
+  Official RBAC model covering principals, role definitions, scopes, and role assignments. Use for: lesson 12's authorization vocabulary.
 - [Guide: "How we built our multi-agent research system" — Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
   Concrete multi-agent tradeoffs: use independent breadth-first work or context isolation; expect higher token cost, coordination complexity, and difficult debugging. Use for: single versus multi-agent choice.
 - [Paper: "MemGPT: Towards LLMs as Operating Systems" — Packer et al. (arXiv:2310.08560)](https://arxiv.org/abs/2310.08560)
@@ -78,6 +96,14 @@
   Official architecture guidance comparing fixed-size, sentence/structure-aware, semantic, and custom chunking. Use for: lesson 11's warning that chunk size and overlap are corpus-dependent and must be evaluated.
 - [Docs: Amazon Bedrock — Overview](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html)
   Official Bedrock overview. Use for: truthful cloud-platform architecture discussion: model inference, managed features, IAM, networking, observability, and cost.
+- [Docs: Amazon Bedrock — Inference using the Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html)
+  Official normalized message-inference contract, including model IDs, response stop reasons, token usage, latency metrics, request metadata, and the statement about content supplied to Converse. Use for: lesson 13's first real runtime call and measurement boundary.
+- [Docs: Amazon Bedrock — Identity-based policy examples](https://docs.aws.amazon.com/bedrock/latest/userguide/security_iam_id-based-policy-examples.html)
+  Official IAM examples for restricting model inference to selected resources and actions. Use for: lesson 13's least-privilege invoke policy and the distinction between caller authorization and generated content.
+- [Docs: Amazon Bedrock — Request access to models](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
+  Official current guidance on model availability, first-use requirements, third-party model access, and Region-sensitive setup. Use for: lesson 13's preflight checklist.
+- [Docs: Amazon Bedrock — Include a guardrail with the Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html)
+  Official guide to attaching a versioned Guardrail to Converse requests, tracing interventions, and handling the `guardrail_intervened` stop reason. Use for: lesson 13's layered-control comparison.
 - [Docs: Amazon Bedrock Knowledge Bases](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html)
   Official managed/custom RAG documentation. Use for: mapping the hand-built RAG spine to Bedrock without claiming production experience.
 - [Docs: Microsoft Foundry — What is Microsoft Foundry?](https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry)
@@ -101,4 +127,4 @@
 - Retrieval-metric coverage is now closed (recall@k, precision@k/context precision, MRR, NDCG, and the set-vs-rank rule all have glossary entries and sources; see LR-0009).
 - The capstone (lesson 7) is delivered. Remaining unverified: a practitioner guide on a citation/attribution UI or an evaluation dashboard.
 - Prediction track has begun with local sparse text classification (lesson 8). Still missing before the fintech applications: verified sources on label design and class imbalance, probability calibration, LLM-as-classifier with structured output, structured/tabular classification, and anomaly detection. Do not claim the fictional support-ticket baseline transfers to fraud, underwriting, or credit risk.
-- Interview-first gaps now have verified sources. Still missing before interview drills become production claims: hands-on cloud AI work and framework experience beyond the learner's personal LangGraph/MCP work. The roadmap is `reference/interview-roadmap.html`.
+- Interview-first gaps now have verified sources. Hands-on cloud AI work has started with a bounded Bedrock runtime lab in lesson 13. Managed retrieval, broader AWS operations, and framework experience beyond the learner's personal LangGraph/MCP work remain open. The roadmap is `reference/interview-roadmap.html`.

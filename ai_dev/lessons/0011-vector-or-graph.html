@@ -62,6 +62,28 @@ Meridian Finance ──OWNS_VOTING_SHARES──&gt; Harbor Credit</code></pre>
     <p class="callout-title">What the hybrid answer might contain</p>
     <p>“The graph finds the path Elena Ruiz → Northstar Holdings → Meridian Finance → Harbor Credit. Passage <code>p1</code> supports Elena's beneficial ownership of Northstar; <code>p2</code> supports Northstar's 80% ownership of Meridian; <code>p3</code> supports Meridian's voting-share relationship with Harbor. Under the stated control rule, Harbor qualifies; without that rule, the system should claim only that it found this ownership path.”</p>
   </div>
+
+  <h3>What actually gets embedded?</h3>
+  <p>This is the important correction: <strong>in the common graph-first design, you do not need to embed the returned subgraph at all.</strong> The graph returns node IDs, edge types, properties, and provenance IDs. The text passages were embedded earlier, during ingestion.</p>
+  <pre><code>Ingestion:
+  p1, p2, p3 ──embed──&gt; passage vectors
+  graph edge ──stores──&gt; source_id = p1, p2, or p3
+
+Query time:
+  user question ──embed──&gt; query vector
+  graph traversal ──returns──&gt; {p1, p2, p3}
+  vector search ──filters/ranks──&gt; passages p1, p2, p3</code></pre>
+  <p>If the graph already gives you the exact provenance IDs, a direct lookup of <code>p1</code>, <code>p2</code>, and <code>p3</code> may be better than similarity search. If several passages support the path, use those IDs as a metadata filter and let vector similarity rank which passages best explain the user's wording. The graph narrows <em>which facts are allowed</em>; the vector index helps choose <em>which prose is most relevant</em>.</p>
+  <p>There are other valid architectures, but name them separately:</p>
+  <ul>
+    <li><strong>Vector-first:</strong> embed the question, retrieve passages, extract entities from them, then expand or validate the result in the graph.</li>
+    <li><strong>Graph-to-text:</strong> serialize a path such as <code>Elena → OWNS → Northstar</code> and embed that text. This is possible but can lose types, qualifiers, and provenance unless you preserve them carefully.</li>
+    <li><strong>Graph embeddings:</strong> use a graph-specific representation learned from nodes and edges. That is a different model and retrieval problem from ordinary passage embeddings.</li>
+  </ul>
+  <div class="callout">
+    <p class="callout-title">The short answer</p>
+    <p>For this example, embed the <strong>source passages</strong>, not the subgraph. Traverse the graph to obtain the path and its source IDs; then fetch or filter to those passages for evidence and citations. Only embed the subgraph if you have deliberately chosen a graph-embedding or graph-to-text architecture.</p>
+  </div>
   <p>Interview-safe answer: <strong>definition → trade-off → example → limit</strong>. “Vector search is good for semantic evidence but does not guarantee an explicit relationship. Graph traversal makes relationships and constraints queryable but requires entity and edge modeling. For a beneficial-ownership question, I would use graph traversal to establish the path and vector retrieval to fetch the source passages, then evaluate recall, precision, faithfulness, latency, and maintenance cost.”</p>
 
   <h2>Chunking changes what retrieval can see</h2>

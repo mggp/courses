@@ -24,14 +24,17 @@
   <p><strong>Started.</strong> <a href="../lessons/0008-not-every-ai-problem-is-rag.html">Classification versus retrieval</a>: labels, held-out evaluation, and thresholds as policy.</p>
   <p><strong>Started.</strong> <a href="../lessons/0009-the-boundary-is-the-system.html">Agent systems and integration boundaries</a>: workflow versus agent, tools/resources/prompts/skills, MCP's host/client/server boundary, and the measurable case for multi-agent systems.</p>
   <p><strong>Started.</strong> <a href="../lessons/0010-safety-is-a-control-plane.html">Safety and the control plane</a>: layered guardrails, fail-closed abstention, tool authorization, auditability, and temperature/top-p as sampling controls rather than safety enforcement.</p>
-  <p><strong>Needs interview-first coverage.</strong> Prompt versus context engineering, cloud architecture, and concise Python/FastAPI/SOLID answers.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0011-vector-or-graph.html">Data and knowledge architecture</a>: vector versus graph retrieval, vector-graph hybrid design, fixed-size versus semantic chunking, and measured retrieval trade-offs.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0012-delivery-is-design.html">Credible delivery</a>: FastAPI versus Flask, applied SOLID/dependency inversion, and truthful cloud-platform gap answers.</p>
+  <p><strong>Started.</strong> <a href="../lessons/0013-first-cloud-hop.html">Hands-on AWS runtime</a>: one Bedrock Converse integration behind a provider port, IAM/model/Region vocabulary, response measurements, and layered local versus managed checks. This becomes personal-project experience only after the learner runs it.</p>
+  <p><strong>Needs interview-first coverage.</strong> Prompt versus context engineering and managed retrieval practice; concise Python/FastAPI/SOLID answer structure and the first cloud runtime lab are now started.</p>
 
   <h2>Truthful baseline</h2>
   <ul>
     <li>Senior Python/web developer; maintained FastAPI services and has about two years of Django development.</li>
     <li>Built a personal LangGraph tool; do not claim LangChain, AutoGen, or CrewAI experience unless it becomes true.</li>
     <li>Configured MCP tools and integrated them into a maintained FastAPI service through a library.</li>
-    <li>No hands-on Bedrock, Azure AI/Foundry, or Vertex AI experience to claim yet.</li>
+    <li>No Bedrock, Azure AI/Foundry, or Vertex AI production experience to claim. Lesson 13 starts a personal Bedrock runtime lab; it is not experience until run and understood.</li>
   </ul>
 
   <h2>Adaptive interview sections</h2>
@@ -46,7 +49,7 @@
   <p><strong>Diagnostic:</strong> strong vector-versus-graph intuition. <a href="../lessons/0011-vector-or-graph.html">Lesson 11</a> sharpens the precise terms: vector similarity retrieves semantic evidence; graph traversal exposes explicit relationships; vector-graph hybrid retrieval can do both. It adds fixed-size versus semantic chunking and turns the existing RAG metrics work into an interview answer, not a re-teaching of the full RAG spine. Next step is a short verbal drill after you inspect the chunk boundaries.</p>
 
   <h3>D · Credible delivery story</h3>
-  <p><strong>Primary practice area.</strong> Turn genuine FastAPI/Django/LangGraph/MCP work into concise answers for FastAPI versus Flask and software-design principles. For Bedrock, Azure/Foundry, and Vertex, practice an honest gap answer that continues into architecture, evaluation, IAM/networking, latency, cost, monitoring, and a personal-project learning plan.</p>
+  <p><strong>Practice plus build.</strong> <a href="../lessons/0012-delivery-is-design.html">Lesson 12</a> turns genuine FastAPI/Django/LangGraph/MCP work into concise answers for FastAPI versus Flask and software-design principles. <a href="../lessons/0013-first-cloud-hop.html">Lesson 13</a> turns the cloud gap into a bounded personal lab: a real Bedrock Converse call, IAM and Region configuration, response measurements, and application-level routing. Managed retrieval, broader AWS operations, and production reliability remain open questions until they are built and operated.</p>
 
   <h3>After the interview-first block</h3>
   <p>Return to the prediction track: label design and imbalance, LLM-as-classifier with structured output, tabular classification, anomaly detection, calibration, and regulated-model governance. Lesson 8 remains the foundation; it just stops being the immediate next branch.</p>
@@ -55,10 +58,10 @@
   <p>For every question, use the same structure: <strong>definition → trade-off → one real example → limit or control</strong>. It prevents buzzword answers and makes unknown platform experience easy to state honestly.</p>
   <pre><code>"I have not used Bedrock hands-on or in production, so I would not claim that.
 My relevant work is maintaining FastAPI services, integrating MCP tooling, and
-building/evaluating RAG mechanics locally. On Bedrock I would evaluate model
-choice, Knowledge Bases where the managed abstraction fits, IAM/network boundaries,
-evaluation, latency, cost, and monitoring. Any Bedrock work I build next would be
-a personal project, not production experience."</code></pre>
+building/evaluating RAG mechanics locally. I have now built a small personal
+Converse integration, but I would still distinguish that from production
+operation. I would evaluate model choice, Knowledge Bases where the managed
+abstraction fits, IAM/network boundaries, evaluation, latency, cost, and monitoring."</code></pre>
 
   <footer class="lesson-footer">
     <p>Primary-source map: <a href="https://www.anthropic.com/research/building-effective-agents">agent systems</a>, <a href="https://modelcontextprotocol.io/specification/2025-11-25">MCP specification</a>, <a href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI RMF</a>, <a href="https://neo4j.com/docs/getting-started/graph-database/">graph databases</a>, and the official cloud documentation recorded in <a href="../RESOURCES.md">RESOURCES.md</a>.</p>

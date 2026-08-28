@@ -33,6 +33,17 @@
 - Catches oversimplifications and asks "but *why*?" at the mechanism level (e.g. "shouldn't chunk/answer/citation be related?"). Answer with the actual mechanism plus empirical demonstration on his own corpus — he verifies claims by running things. When a lesson's explanation is incomplete, fix the lesson, not just the answer.
 - He engages with the theory of the field (embeddings, retrieval quality) — keep lessons grounded in how production systems actually behave, with primary sources, and stay honest when a fix is partial (cross-encoder lifted the miss to rank 2, didn't eliminate it).
 
+## Session 13 signal: close the cloud gap through practice
+
+- The learner does not want cloud-gap interview wording to substitute for cloud experience. Cover the gap with a few concrete concepts and a small personal build, without implying certification or production operation.
+- Start with one bounded AWS Bedrock Runtime call behind the existing port/adapter seam. Keep retrieval and application checks visible so the cloud service does not become a black box.
+- Treat the first real cloud run as personal-project experience only after the learner runs and understands it. Managed retrieval, broader AWS operations, and production reliability remain separate follow-ups.
+
+## Session 14 signal: define the boundary precisely
+
+- When a lesson uses a familiar term as shorthand, expand the mechanism before moving on. In particular, distinguish model categories, authorization models, server-to-application protocols, and object-design principles.
+- For Interface Segregation, define a small port through the client's required role and contrast it explicitly with deep-module design. Do not present “small” as a one-method rule.
+
 ## Session 4 signal: hybrid search needs first-principles teaching
 
 Asked "I don't understand the description for the hybrid search. Add some context." — he has **no information-retrieval background**: BM25, tf-idf, RRF, "dense" vs "sparse" are all new vocabulary. Lesson 3 must define each term from zero (dense = what he already built; BM25 = classic keyword scoring, tf×idf intuition via corpus words like "authentication"; RRF = combine *ranks* not scores, election metaphor), and must be honest that hybrid did NOT rescue the lesson-2 miss on his corpus (both systems + fused all miss p10 — demo in `exercises/lesson0002/hybrid_demo.py`); the fix for that specific gap is query rewriting/HyDE, while hybrid is for covering complementary blind spots across many queries. Preserve the honest demo results rather than overselling fusion.

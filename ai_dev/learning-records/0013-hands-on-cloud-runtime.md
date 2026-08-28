@@ -1,0 +1,3 @@
+# Hands-on cloud track begins with Bedrock Runtime
+
+The learner explicitly wants to close the AWS gap through concepts and a small personal build, not only through a polished answer about lacking experience. Lesson 13 starts with one Amazon Bedrock Converse API call behind a provider port, while local retrieval, citation routing, and evaluation remain visible. The design keeps the first cloud hop bounded and low-risk: Region, model ID, IAM invoke permission, model-access preflight, response usage, latency, and an optional managed Guardrail are the new concepts. A completed personal lab is still distinct from production operation, managed Knowledge Bases, or broader AWS reliability work.

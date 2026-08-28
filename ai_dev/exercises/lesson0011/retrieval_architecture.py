@@ -224,6 +224,10 @@ def show_ownership_example() -> None:
         print(f"    [{source_id}] {passage}")
     print("  The graph establishes the path; the passages provide evidence and citations.")
     print("  Apply a domain rule before calling the path 'ultimate control'.")
+    print("  EMBEDDING PLAN (illustrative; this offline exercise does not embed)")
+    print("    embed: the user question and source passages p1, p2, p3")
+    print("    do not embed by default: the returned graph nodes and edges")
+    print("    use graph source IDs as a direct lookup or metadata filter")
 
 
 def main() -> None:

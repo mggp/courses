@@ -1,0 +1,3 @@
+# Lesson 12 boundary clarifications
+
+Lesson 12 needed four definitions before the learner could use its delivery vocabulary confidently. A foundation model is broadly trained for reuse across tasks, not simply any pre-trained model. RBAC is authorization expressed as principal, role definition, and scope. WSGI and ASGI are server-to-application protocols with different call and event contracts, not merely labels for old and new frameworks. A small port is a cohesive, application-owned interface for one client role; it is related to, but distinct from, a deep module, which hides substantial implementation behind a simple interface.

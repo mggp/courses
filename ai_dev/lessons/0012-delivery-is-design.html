@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 12: Delivery is part of the design — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 12 · Interview-first · Delivery and credibility</p>
+    <h1>Delivery is part of the design</h1>
+    <p class="lede">Choose the web boundary, isolate provider-specific code, and describe cloud gaps without pretending they are experience.</p>
+    <p class="meta">~40 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0011-vector-or-graph.html">lesson 11</a> &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>You already have genuine material to discuss: maintaining FastAPI services, Django experience, a personal LangGraph tool, MCP integration, and local RAG work. The interview risk is not lacking vocabulary; it is giving a framework or cloud answer that sounds more hands-on than it is. This lesson turns the vocabulary into a truthful delivery story.</p>
+  </div>
+
+  <h2>FastAPI versus Flask is a boundary decision</h2>
+  <p>Do not answer this as “FastAPI is modern and Flask is old.” Ask what the application needs and what the team already operates.</p>
+  <ul>
+    <li><strong>FastAPI:</strong> a type-hint-driven API framework with Pydantic-backed validation, OpenAPI-based documentation, and built-in dependency injection. It is a natural fit when typed HTTP contracts, generated API documentation, and concurrent I/O are central concerns. The framework's own documentation describes its Starlette and Pydantic foundations and its <code>async</code>/<code>await</code> support. <a href="https://fastapi.tiangolo.com/features/">Read the feature list</a>.</li>
+    <li><strong>Flask:</strong> a small, explicit WSGI-oriented framework with a broad extension ecosystem. Flask can define async views, but its documentation explains that each request still occupies a worker under WSGI; async is useful for concurrent I/O inside that request, not a universal speed or concurrency guarantee. <a href="https://flask.palletsprojects.com/en/stable/async-await/">Read the async caveat</a>.</li>
+  </ul>
+  <p>A defensible comparison is: “FastAPI gives me typed request/response contracts, automatic OpenAPI documentation, validation, and dependency injection with an async-friendly API boundary. Flask gives me a smaller, explicit core and a mature extension ecosystem. I would choose based on the existing codebase, contract and validation needs, I/O pattern, deployment model, team familiarity, and measured operational behavior—not on a blanket performance claim.”</p>
+  <p>For your own experience, say: <strong>“I have maintained FastAPI services, so I can discuss that from practice. My Flask comparison is architectural unless I have a specific Flask system to describe.”</strong> That sentence is more credible than inventing a Flask migration story.</p>
+
+  <h3>ASGI and WSGI are interface protocols</h3>
+  <p>The important distinction is not “old sync framework versus new async framework.” WSGI and ASGI define how a server calls an application. The server still owns sockets and HTTP parsing. The interface determines what the application can receive, return, and await.</p>
+  <pre><code># WSGI: one synchronous callable for an HTTP request
+def application(environ, start_response):
+    start_response("200 OK", [("Content-Type", "text/plain")])
+    return [b"hello"]
+
+# ASGI 3: one async callable for a connection
+async def application(scope, receive, send):
+    await send({"type": "http.response.start", "status": 200, "headers": []})
+    await send({"type": "http.response.body", "body": b"hello"})</code></pre>
+  <p>WSGI gives the application a CGI-like <code>environ</code> dictionary and a <code>start_response</code> callback. The application returns an iterable of byte strings. That is a good simple contract for ordinary HTTP request and response work. It does not provide an async event protocol or a portable WebSocket model. The contract is specified by <a href="https://peps.python.org/pep-3333/">PEP 3333</a>.</p>
+  <p>ASGI gives the application a <code>scope</code>, an awaitable <code>receive</code> function, and an awaitable <code>send</code> function. HTTP request bodies, response chunks, WebSocket messages, and lifecycle events travel as messages. An HTTP scope usually lasts for one request. A WebSocket scope can last for the whole connection. The contract is defined by the <a href="https://asgi.readthedocs.io/en/latest/specs/main.html">ASGI specification</a>.</p>
+  <ul>
+    <li><strong>Concurrency:</strong> a WSGI deployment usually gets concurrency from multiple processes or threads. An ASGI deployment can interleave many tasks on an event loop when the application awaits non-blocking I/O. ASGI can also use multiple worker processes.</li>
+    <li><strong>Blocking work:</strong> <code>async def</code> does not make a blocking database driver or model SDK non-blocking. In an ASGI worker, blocking code can stall other tasks. Use an async client or explicitly offload blocking work to a thread or process.</li>
+    <li><strong>Protocols:</strong> WSGI is centered on HTTP request and response. ASGI models HTTP, WebSockets, and lifespan events through the same general message pattern.</li>
+    <li><strong>Streaming:</strong> WSGI can return an iterable for HTTP streaming. ASGI makes incremental send events and long-lived connections first-class, which is a better fit for token streaming and WebSockets.</li>
+    <li><strong>Compatibility:</strong> an ASGI server can run a WSGI application through an adapter, but the adapter cannot invent WebSocket or non-blocking behavior that the WSGI application does not expose.</li>
+  </ul>
+  <p>Interview answer: <strong>“WSGI is a synchronous two-argument application interface built around an environment dictionary, a response callback, and a returned iterable. ASGI is an async message interface with scope, receive, and send, so it can represent HTTP, WebSockets, streaming, and lifespan events. ASGI can improve I/O concurrency when the whole path is non-blocking, but it does not make CPU-heavy or blocking code fast. For an AI API I would check whether the model, database, and HTTP clients are async-capable, then measure latency and worker behavior.”</strong></p>
+
+  <h2>Use SOLID as a diagnosis, not a recital</h2>
+  <p>SOLID is useful when it explains a seam in the design. For an AI API, keep the HTTP adapter, application use case, model provider, retrieval system, policy checks, and audit sink separate:</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">HTTP route</span><span class="node-sub">parse transport</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Use case</span><span class="node-sub">orchestrate work</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Ports</span><span class="node-sub">model + retrieval</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Adapters</span><span class="node-sub">SDKs + stores</span></span>
+  </div>
+  <ul>
+    <li><strong>Single Responsibility:</strong> the route handles HTTP, the use case coordinates, the provider adapter speaks an SDK, and the audit sink records events. None should own all four jobs.</li>
+    <li><strong>Open/Closed:</strong> add a new model-provider adapter without editing the core use case.</li>
+    <li><strong>Liskov Substitution:</strong> every adapter must honor the same port contract: valid inputs, a predictable result, and defined failure behavior.</li>
+    <li><strong>Interface Segregation:</strong> depend on small, cohesive ports such as <code>ModelPort</code>, <code>RetrieverPort</code>, and <code>AuditPort</code>, not one giant “AI service” interface.</li>
+    <li><strong>Dependency Inversion:</strong> the high-level use case depends on those abstractions; provider SDKs are injected at the edge.</li>
+  </ul>
+  <p>A <strong>port</strong> is an application-owned interface for one role that can change independently. In this exercise, <code>ModelPort.generate()</code> says what the use case needs from a model. <code>AuditPort.record()</code> says what it needs from an audit sink. Neither interface mentions boto3, an HTTP client, a database table, or a provider's native request shape.</p>
+  <pre><code># Too broad for a use case that only generates and audits
+class AiPlatform(Protocol):
+    def generate(self, request): ...
+    def embed(self, text): ...
+    def retrieve(self, query): ...
+    def invoke_tool(self, name, arguments): ...
+    def record_audit(self, event): ...
+
+# Role-specific ports
+class ModelPort(Protocol):
+    def generate(self, request): ...
+
+class AuditPort(Protocol):
+    def record(self, event): ...</code></pre>
+  <p>The word <strong>small</strong> refers to the client's view, not to an arbitrary one-method rule. A port should contain the operations one consumer role needs and no provider-specific extras. If a service depends on a giant interface, every implementation and test must understand methods that service never uses. That is the Interface Segregation Principle in concrete terms.</p>
+  <p>Your deep-module analogy is useful, but it names a different property. Interface Segregation asks <em>which operations should this client depend on?</em> A deep module asks <em>how much useful work does a simple public interface hide?</em> A <code>ModelPort</code> can be a small port and a deep module if its adapter hides retries, serialization, authentication, and provider errors. A one-method wrapper that merely forwards a call is small but shallow. Keep the two ideas related, not interchangeable.</p>
+  <pre><code>class ModelPort(Protocol):
+    def generate(self, request: GenerationRequest) -&gt; GenerationResponse: ...
+
+class AnswerService:
+    def __init__(self, model: ModelPort, audit: AuditPort): ...</code></pre>
+  <p>This is not architecture for its own sake. The seam lets you test the use case with a fake provider, compare providers without rewriting business logic, and keep cloud-specific retries, authentication, telemetry, and request translation at the adapter boundary. Stop adding abstractions when the seam has no independent reason to change.</p>
+
+  <h2>Answer a cloud-platform gap honestly</h2>
+  <p>You do not have hands-on Bedrock, Microsoft Foundry, or Vertex AI production experience. That is a boundary to state, not a weakness to hide:</p>
+  <pre><code>“I have not used Bedrock hands-on or in production, so I would not claim that.
+My relevant experience is maintaining FastAPI services, integrating MCP tooling,
+and building/evaluating RAG mechanics locally. I would evaluate the platform's
+model access, identity and network boundaries, retrieval, guardrails, evaluation,
+latency, cost, monitoring, and rollback path. Any implementation I build next
+would be a personal project, not production experience.”</code></pre>
+  <p>Then demonstrate architectural understanding without pretending to have operated it:</p>
+  <h3>Foundation models and RBAC</h3>
+  <p>A <strong>foundation model</strong> is usually broadly pre-trained on diverse data at scale and intended to support many downstream tasks. Pre-training is part of the story, but “pre-trained” alone is not the definition. A task-specific image classifier may be pre-trained and still not be a foundation model. A foundation model may later receive instruction tuning, alignment, fine-tuning, or other adaptation. AWS uses the term for models exposed through Bedrock that can support tasks such as text generation, image generation, or embeddings. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html">Read AWS's model overview</a>.</p>
+  <p><strong>RBAC</strong> means role-based access control. It grants permissions through roles rather than assigning every permission directly to every person. The useful mental model is <code>principal + role definition + scope</code>: a user, group, service principal, or managed identity receives a role such as reader or contributor at a subscription, resource group, or resource scope. RBAC is authorization, not authentication. Azure's documentation describes this model and its role-assignment structure. <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/overview">Read the RBAC overview</a>.</p>
+  <ul>
+    <li><strong>Amazon Bedrock:</strong> a managed service for access to foundation models. Its Knowledge Bases capability is a managed RAG surface; evaluate how it fits your ingestion, retrieval, provenance, IAM, and control-plane requirements. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html">Read the overview</a>.</li>
+    <li><strong>Microsoft Foundry:</strong> the current Microsoft platform brings models, agents, tools, observability, governance, identity, RBAC, and networking into a managed surface. Distinguish a prompt agent or hosted agent you learn from documentation from one you have operated. <a href="https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry">Read the current overview</a>.</li>
+    <li><strong>Vertex AI:</strong> describe it as a managed Google AI-platform surface you would investigate through its current model, deployment, evaluation, identity, networking, and monitoring documentation. Do not turn a quickstart read into production experience.</li>
+  </ul>
+  <p>The evaluation questions remain portable: What is managed? Where does data go? How are identities and permissions enforced? How do I bring my own retrieval and guardrails? What are the latency, cost, quota, observability, and rollback characteristics? Which parts remain application code?</p>
+
+  <h2>Build the delivery story</h2>
+  <p><code>exercises/lesson0012/delivery_story.py</code> is an offline design seam. Its <code>AnswerService</code> depends on <code>ModelPort</code> and <code>AuditPort</code>, while a local adapter stands in for a provider SDK. The provider labels are deliberately not cloud integrations; they let you practise the architecture and the honest gap statement without making a network call or a false experience claim.</p>
+  <ol class="steps">
+    <li>Run <code>uv sync</code>, then <code>uv run delivery_story.py</code> from <code>exercises/lesson0012/</code>. Read the dependency boundary and the SOLID checks.</li>
+    <li>Run <code>uv run delivery_story.py --framework fastapi --provider bedrock</code>. The output gives an architectural comparison and an explicit “not hands-on” boundary.</li>
+    <li>Run <code>uv run delivery_story.py --framework flask --provider foundry</code>. Notice that changing the framework or provider label does not require changing <code>AnswerService</code>.</li>
+    <li>Read the adapter and port definitions. Identify which line would change if a real provider SDK were introduced, and which line should remain unchanged.</li>
+    <li><strong>Say the answer aloud.</strong> “I can speak from practice about maintaining FastAPI services and integrating MCP tooling. I have not operated Bedrock, Foundry, or Vertex in production. I would isolate provider SDKs behind ports, then evaluate identity, network, retrieval, guardrails, evaluation, latency, cost, and monitoring before choosing a managed surface.”</li>
+  </ol>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Ask about ASGI versus WSGI, foundation models, RBAC, small ports, dependency injection, adapter seams, how to discuss Django without derailing the answer, or how to turn a cloud gap into a concrete personal-project plan. We will keep claims tied to what you actually built or verified.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the script. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · Delivery and credibility</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="FastAPI's typed contracts, async-friendly API boundary, validation, documentation, and dependency injection are useful selection signals; do not turn them into a universal performance claim.">
+        <p class="q-text">Which is a useful FastAPI selection signal?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">typed contracts and async I/O</button>
+          <button type="button" class="quiz-option">typed contracts and event I/O</button>
+          <button type="button" class="quiz-option">typed contracts and batch I/O</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Flask is WSGI-oriented. Its async support runs an event loop for the request but does not turn each worker into an ASGI-style concurrent request server.">
+        <p class="q-text">Why does Flask async not automatically increase concurrency?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">because Flask remains a WSGI service</button>
+          <button type="button" class="quiz-option">because Flask remains a ASGI service</button>
+          <button type="button" class="quiz-option">because Flask remains a sync service</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Dependency inversion keeps high-level application logic dependent on a stable port or protocol rather than a concrete provider or adapter.">
+        <p class="q-text">Which design demonstrates dependency inversion?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">service depends on a protocol</button>
+          <button type="button" class="quiz-option">service depends on a provider</button>
+          <button type="button" class="quiz-option">service depends on an adapter</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="An honest answer states the experience boundary and then connects relevant real work to an architecture and evaluation plan; invented experience destroys credibility.">
+        <p class="q-text">What makes a cloud gap answer credible?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">name the gap and use relevant work</button>
+          <button type="button" class="quiz-option">name the gap and use invented work</button>
+          <button type="button" class="quiz-option">name the gap and use abstract work</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A foundation model is broadly trained for reuse across tasks; being pre-trained is not sufficient because task-specific models can also be pre-trained.">
+        <p class="q-text">What makes a foundation model different?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">trained broadly across contexts</button>
+          <button type="button" class="quiz-option">trained narrowly across domains</button>
+          <button type="button" class="quiz-option">trained narrowly across systems</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="RBAC assigns role definitions to principals at a scope. It is an authorization model, not an authentication mechanism.">
+        <p class="q-text">What does RBAC organize?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">roles, principals, and scopes</button>
+          <button type="button" class="quiz-option">tokens, passwords, and scopes</button>
+          <button type="button" class="quiz-option">model, requests, and policies</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="1" data-explain="WSGI uses environ and start_response and returns an iterable; ASGI uses scope, receive, and send with awaitable message events.">
+        <p class="q-text">Which interface difference is accurate?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">WSGI returns iterable and ASGI sends events</button>
+          <button type="button" class="quiz-option">WSGI sends events and ASGI returns iterable</button>
+          <button type="button" class="quiz-option">WSGI returns response and ASGI sends events</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A small port exposes only the operations one consumer role needs. Deep modules are related because they hide substantial implementation behind a simple interface, but the concepts are not identical.">
+        <p class="q-text">What does a small port protect?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">a client from unused operations</button>
+          <button type="button" class="quiz-option">a client from remote operations</button>
+          <button type="button" class="quiz-option">a client from hidden operations</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Read the official <a href="https://fastapi.tiangolo.com/features/">FastAPI feature guide</a>, <a href="https://flask.palletsprojects.com/en/stable/async-await/">Flask async documentation</a>, <a href="https://peps.python.org/pep-3333/">WSGI specification</a>, and <a href="https://asgi.readthedocs.io/en/latest/specs/main.html">ASGI specification</a> for the web boundary. Then read AWS's <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html">foundation-model overview</a>, Microsoft's <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/overview">RBAC overview</a>, and the Stanford lecture on <a href="https://web.stanford.edu/~ouster/cgi-bin/cs190-winter18/lecture.php?topic=modularDesign">deep modules</a>. Use the platform documentation to construct evaluation questions, not to imply that reading a quickstart equals operating the platform.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#api-framework">API framework</a>, <a href="../reference/glossary.html#fastapi">FastAPI</a>, <a href="../reference/glossary.html#flask">Flask</a>, <a href="../reference/glossary.html#asgi">ASGI</a>, <a href="../reference/glossary.html#wsgi">WSGI</a>, <a href="../reference/glossary.html#foundation-model">foundation model</a>, <a href="../reference/glossary.html#rbac">RBAC</a>, <a href="../reference/glossary.html#port">port</a>, <a href="../reference/glossary.html#solid">SOLID</a>, <a href="../reference/glossary.html#dependency-inversion">dependency inversion</a>, <a href="../reference/glossary.html#adapter">adapter</a>, <a href="../reference/glossary.html#experience-boundary">experience boundary</a>.</p>
+    <p class="next">Next: make the cloud gap concrete with <a href="../lessons/0013-first-cloud-hop.html">lesson 13</a>, a bounded Bedrock runtime call behind the same application boundary. The prediction track remains queued after the hands-on cloud block.</p>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 13: Your first cloud hop — Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/quiz.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 13 · Interview-first · Hands-on AWS</p>
+    <h1>Your first cloud hop</h1>
+    <p class="lede">Make one real Bedrock call, keep the application checks visible, and learn which parts of the system AWS is actually managing.</p>
+    <p class="meta">~45 minutes &nbsp;·&nbsp; Python &nbsp;·&nbsp; <a href="../lessons/0012-delivery-is-design.html">lesson 12</a> &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>A good answer about an AWS gap is useful, but it does not close the gap. This lesson gives you a small, honest piece of hands-on experience: a Python application sends selected evidence to Amazon Bedrock through the Converse API, receives a response, records usage and latency, and applies a local fail-closed citation check. It is a cloud call, not a claim of production operation.</p>
+  </div>
+
+  <h2>Keep the first cloud build narrow</h2>
+  <p>Do not start by creating an agent, a vector store, a knowledge base, a VPC, and a dashboard. That is a lot of AWS vocabulary before you have felt the important boundary. Start with one operation:</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Your app</span><span class="node-sub">select evidence</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Bedrock Runtime</span><span class="node-sub">Converse API</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Foundation model</span><span class="node-sub">generate text</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Your app</span><span class="node-sub">check and route</span></span>
+  </div>
+  <p>The exercise keeps retrieval local on purpose. That isolates the new thing, the provider boundary. You already know how to retrieve evidence and check citations. Now you can see exactly what changes when the generator moves from a local stand-in to a managed cloud API.</p>
+
+  <h2>The AWS concepts that matter here</h2>
+  <ul>
+    <li><strong>Region:</strong> the AWS location used for the API endpoint and model request. Region choice affects availability, latency, data-residency discussion, and sometimes the model ID you can use.</li>
+    <li><strong>Model ID:</strong> the identifier sent to Bedrock. It is configuration, not business logic. A model ID can name a foundation model or, where supported, an inference profile.</li>
+    <li><strong>Identity and IAM:</strong> the AWS credential chain identifies the caller; an IAM policy decides whether that caller may invoke the selected model. The application should not carry long-lived keys in source code.</li>
+    <li><strong>Runtime API:</strong> <code>bedrock-runtime.Converse</code> receives messages and returns a normalized response. The response includes a stop reason, token usage, and latency metrics. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html">Read the Converse documentation</a>.</li>
+  </ul>
+  <p>That list is enough for this build. You do not need to memorize every AWS service name. You need to know which setting changes behavior, where permission is enforced, and which values you can measure.</p>
+
+  <h2>What crosses the boundary?</h2>
+  <pre><code>local application
+  question + selected evidence
+        │
+        ├── credentials and region select the AWS caller and endpoint
+        │
+        ▼
+Amazon Bedrock Runtime: Converse(model_id, messages, inference_config)
+        │
+        ▼
+normalized response: output, stopReason, usage, metrics</code></pre>
+  <p>The exercise sends the question and two short local passages. Bedrock's Converse documentation says that text, images, and documents supplied as content are not stored by Bedrock for this operation. That statement does not remove your responsibility to review model terms, region routing, logging, application logs, and your own data-handling policy. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features">See the request and response contract</a>.</p>
+  <p>Notice what does <em>not</em> cross the boundary. The local retriever does not become an AWS Knowledge Base by magic. The local citation check does not become a Bedrock Guardrail. You can add either later, but name the change when you make it.</p>
+
+  <h2>IAM is a control, not setup paperwork</h2>
+  <p>The application needs permission to invoke the chosen model. A learning role should have the smallest useful permission, not an administrator policy copied from a tutorial:</p>
+  <pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "InvokeChosenModel",
+    "Effect": "Allow",
+    "Action": ["bedrock:InvokeModel"],
+    "Resource": "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0"
+  }]
+}</code></pre>
+  <p>Treat that as a starting shape, not a paste-and-forget answer. Replace the region and model with the ones you actually use. If you invoke through an inference profile, IAM may need permissions for the profile and the underlying foundation models. AWS's policy examples explain the resource forms and recommend reducing broad permissions to the specific use case. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/security_iam_id-based-policy-examples.html">Read the Bedrock IAM examples</a>.</p>
+  <p>For this lab, use your normal AWS profile, SSO session, or assumed role. Do not put access keys in the repository. Check model availability and any first-use requirements in the selected Region before making the call. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html">Read the current model-access guidance</a>.</p>
+
+  <h2>Guardrails still have layers</h2>
+  <p>Amazon Bedrock can attach a managed Guardrail to a Converse request. It can evaluate configured content policies on input and generated output. That is useful, but it does not replace every control in your application. It does not prove that a cited passage supports a claim, and it does not decide whether a tool action is authorized.</p>
+  <pre><code>IAM permission        → may this caller invoke this model?
+Bedrock Guardrail     → does configured content policy intervene?
+Local citation check  → does the answer cite selected evidence?
+Application route     → accept, abstain, retry, or escalate?</code></pre>
+  <p>The exercise accepts a response only when it contains citations from the evidence it received, or an explicit abstention. That is a structural check, not a faithfulness proof. The application still needs the claim-level NLI check from lesson 7 if you want to test whether the cited text entails the claim. To attach a Bedrock Guardrail, pass its versioned ID in the request. AWS documents the <code>guardrailConfig</code> field and the <code>guardrail_intervened</code> stop reason. <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html">Read the Converse Guardrail guide</a>.</p>
+
+  <h2>Build it</h2>
+  <p><code>exercises/lesson0013/bedrock_grounded.py</code> uses the port and adapter boundary from lesson 12. Its local adapter lets you run the whole route offline. Its Bedrock adapter creates a <code>boto3</code> runtime client only when you explicitly choose the cloud provider. It also records the usage and latency returned by Converse, rather than treating the answer as the only output that matters.</p>
+  <ol class="steps">
+    <li>Run <code>uv sync</code> from <code>exercises/lesson0013/</code>.</li>
+    <li>Run <code>uv run bedrock_grounded.py</code>. This is offline. Read the evidence IDs, the accepted route, and the fact that usage and latency are <code>None</code> for the local stand-in.</li>
+    <li>Run <code>uv run bedrock_grounded.py --provider bedrock --dry-run</code>. This creates no AWS client and makes no network call. Inspect the region, model ID, operation, selected evidence, and guardrail setting.</li>
+    <li>In a personal AWS account or sandbox, confirm your credential source, region, model availability, and least-privilege invoke permission. Check current pricing before invoking anything. <a href="https://aws.amazon.com/bedrock/pricing/">Read the official pricing page</a>.</li>
+    <li>Make one real call with <code>AWS_PROFILE=your-profile AWS_REGION=us-east-1 uv run bedrock_grounded.py --provider bedrock</code>. If your model or region differs, set <code>BEDROCK_MODEL_ID</code> or pass <code>--model-id</code>. Never paste credentials into the command history if your shell records it.</li>
+    <li>Read <code>STOP REASON</code>, <code>USAGE</code>, <code>LATENCY MS</code>, and <code>ROUTE</code>. The answer is only one part of the observation.</li>
+  </ol>
+
+  <div class="callout">
+    <p class="callout-title">What counts as success</p>
+    <p>You can point to one real cloud request and explain its boundary: your app selected evidence, IAM allowed a caller to invoke a model in a Region, Bedrock generated a response, and your application still decided whether the response was safe to return. That is a concrete first step. It is more useful than saying “I know Bedrock” after reading a console page.</p>
+  </div>
+
+  <h2>Turn the call into interview evidence</h2>
+  <p>After you run it, your answer can become specific without becoming inflated:</p>
+  <pre><code>“I built a small personal Python integration with Bedrock's Converse API.
+The retriever and citation gate stayed in application code, while a provider
+adapter translated the request to Bedrock. I configured the Region, model ID,
+and invoke permission, then inspected stop reason, token usage, latency, and
+the fail-closed route. It was a personal learning project, not production
+operation. The next question I would investigate is whether a managed
+Knowledge Base or a self-managed retrieval layer better fits the data and
+provenance requirements.”</code></pre>
+  <p>That answer has an experience boundary, a concrete build, and a limit. It also gives the interviewer somewhere useful to probe.</p>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Stuck? Ask your teacher</p>
+    <p>Ask about IAM resource ARNs, model access errors, inference profiles, the difference between Bedrock Runtime and a Knowledge Base, or what the response usage and latency fields mean. We can debug the actual output instead of guessing.</p>
+  </div>
+
+  <h2>Retrieval practice</h2>
+  <p>Close the script. Recall, do not look.</p>
+  <div class="quiz">
+    <p class="quiz-head"><span>Quiz · First cloud hop</span><span class="quiz-score"></span></p>
+    <ol class="quiz-questions">
+      <li class="quiz-question" data-correct="0" data-explain="The exercise keeps retrieval local so the new cloud boundary is the model-provider call, not an invisible bundle of AWS services.">
+        <p class="q-text">Why does the first exercise keep retrieval local?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">to isolate the provider boundary</button>
+          <button type="button" class="quiz-option">to isolate the database boundary</button>
+          <button type="button" class="quiz-option">to isolate the security boundary</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="1" data-explain="The IAM policy controls whether the caller may invoke the selected model. It is separate from the model's generated content and from the local citation check.">
+        <p class="q-text">What does the Bedrock invoke permission control?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">whether callers may invoke Bedrock</button>
+          <button type="button" class="quiz-option">whether callers may invoke service</button>
+          <button type="button" class="quiz-option">whether callers may invoke content</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="Converse returns a normalized response with output, stop reason, usage, and metrics, so usage and latency can become control-plane measurements.">
+        <p class="q-text">Which fields should the exercise inspect beyond text?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">stop reason usage and latency</button>
+          <button type="button" class="quiz-option">model usage latency and costs</button>
+          <button type="button" class="quiz-option">prompt text usage and latency</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="0" data-explain="A managed Bedrock Guardrail can evaluate configured content policies, while the application still needs its own authorization, provenance, and faithfulness checks.">
+        <p class="q-text">What does a Bedrock Guardrail not prove by itself?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">that cited text supports claims</button>
+          <button type="button" class="quiz-option">that blocked text follows rules</button>
+          <button type="button" class="quiz-option">that chosen topics must trigger</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+      <li class="quiz-question" data-correct="1" data-explain="A truthful interview answer names the personal project, the exact boundary, the measurements, and the fact that it was not production operation.">
+        <p class="q-text">What makes this a credible cloud project?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option">a personal build with broad claims</button>
+          <button type="button" class="quiz-option">a personal build with clear limits</button>
+          <button type="button" class="quiz-option">a personal build with vague limits</button>
+        </div>
+        <p class="quiz-feedback"></p>
+      </li>
+    </ol>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary sources for this lesson</p>
+    <p>Start with the official <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html">Converse API guide</a>, then read the <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/security_iam_id-based-policy-examples.html">Bedrock IAM examples</a>, <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html">model-access guidance</a>, and <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html">Converse Guardrail guide</a>. Read them to answer the questions raised by your own run: which model, which Region, which caller, which policy, and which measurements.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#bedrock">Amazon Bedrock</a>, <a href="../reference/glossary.html#converse-api">Converse API</a>, <a href="../reference/glossary.html#iam">IAM</a>, <a href="../reference/glossary.html#inference-profile">inference profile</a>, <a href="../reference/glossary.html#cloud-runtime">cloud runtime</a>, <a href="../reference/glossary.html#experience-boundary">experience boundary</a>.</p>
+    <p class="next">After one real runtime call, the next AWS step is managed retrieval: compare the local retriever with S3 plus a Bedrock Knowledge Base, keeping provenance, evaluation, and cost visible.</p>
+  </footer>
+</main>
+</body>
+</html>
