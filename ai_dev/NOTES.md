@@ -22,6 +22,37 @@
 - Quizzes test the *concept*, never the *example* used to teach it. A question whose answer is a specific chunk id / rank / corpus number from the lesson's own run is a bug (lesson 6 Q2 — "which rank did p9 move to?" — was exactly this; replaced with "which stage does the cross-encoder belong to?").
 - Run `python3 scripts/check_quiz.py` after authoring any quiz — it verifies every question's options match in word count and character count. Don't re-derive the length check by hand.
 
+## Practice artifacts: the loop is too weak (keep fixing this)
+
+The learner says the practice artifacts have been unsatisfying for a while: the quiz
+is recognition (pick a pre-authored answer), and the exercise scripts are already
+finished (`uv run` prints the author's output; CLI flags are cosmetic knobs). Both
+have the work done *before* the learner arrives. The fix is a single rule: **the
+learner must produce something before the artifact reveals the answer, and the
+feedback must be specific to their production** (their prediction, their chosen
+distractor, their inversion, their missing claim).
+
+Artifact types are catalogued in **LR-0015** with a full table (name, skill,
+how it works, when to reach for it). The HTML-native five to prefer, most to least
+frequent: **predict-then-compare**, **graded fill-in (cloze)**, **spot-the-defect**,
+**rank-the-order drag**, and **explain-then-diff (interview freeze)**. Reach for
+them by the skill they test:
+
+- Concept / "why" → predict-then-compare, spot-the-defect
+- Composition / order → graded fill-in, rank-the-order
+- Vocabulary → matching, graded fill-in
+- Articulation / interview (near-term priority) → explain-then-diff, oral recall
+- Judgment / trade-offs → scenario branching
+- A small coding check is genuinely wanted → fill-the-spec skeleton (mildest)
+
+Governance to carry forward: (1) never test the *example*, only the concept — same
+rule as the existing quiz bug; (2) hidden distractors must not leak the answer via
+length/word count, inheriting the `quiz.js` equal-length rule; (3) stay
+browser-only unless a coding task is genuinely the point; (4) prefer artifacts
+grading **production** over **recognition**; (5) add a checker alongside
+`check_quiz.py` that verifies reveal-gating, distractor mapping, and claim checklists
+before shipping. See LR-0015 for the exact selection guide.
+
 ## Observed preferences (session 2)
 
 - Uses `uv` for project setup (`pyproject.toml` + `uv sync`/`uv run`), not plain pip/venv. Put runnable exercises in `exercises/lessonNNNN/` with a `pyproject.toml` and keep the lesson code linked there.
