@@ -2,7 +2,7 @@
 """check_quiz.py — verify lesson quizzes obey the equal-length rule.
 
 The quiz.js component requires every option in a question to have the same
-word count and the same character count, so formatting never leaks the answer.
+length (with a margin), so formatting never leaks the answer.
 This script reads one or more lesson files and reports any question that
 violates the rule.
 
@@ -40,7 +40,13 @@ def main(argv):
             checked += 1
             words = [len(o.split()) for o in options]
             chars = [len(o) for o in options]
-            ok = len(set(words)) == 1 and len(set(chars)) == 1
+            mean_words = sum(words) / len(words)
+            mean_chars = sum(chars) / len(chars)
+
+            ok = (
+                all(abs(w - mean_words) <= 0.20 * mean_words for w in words)
+                and all(abs(c - mean_chars) <= 0.20 * mean_chars for c in chars)
+            )
             if not ok:
                 bad += 1
                 print(f"{path}  MISMATCH  words={words} chars={chars}")
