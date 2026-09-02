@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 13: Your first cloud hop — Building AI Systems</title>
 <link rel="stylesheet" href="../assets/course.css">
-<script defer src="../assets/quiz.js"></script>
+<script defer src="../assets/practice.js"></script>
 </head>
 <body>
 <main class="prose">
@@ -113,58 +113,82 @@ provenance requirements.”</code></pre>
     <p>Ask about IAM resource ARNs, model access errors, inference profiles, the difference between Bedrock Runtime and a Knowledge Base, or what the response usage and latency fields mean. We can debug the actual output instead of guessing.</p>
   </div>
 
-  <h2>Retrieval practice</h2>
-  <p>Close the script. Recall, do not look.</p>
-  <div class="quiz">
-    <p class="quiz-head"><span>Quiz · First cloud hop</span><span class="quiz-score"></span></p>
-    <ol class="quiz-questions">
-      <li class="quiz-question" data-correct="0" data-explain="The exercise keeps retrieval local so the new cloud boundary is the model-provider call, not an invisible bundle of AWS services.">
-        <p class="q-text">Why does the first exercise keep retrieval local?</p>
-        <div class="quiz-options">
-          <button type="button" class="quiz-option">to isolate the provider boundary</button>
-          <button type="button" class="quiz-option">to isolate the database boundary</button>
-          <button type="button" class="quiz-option">to isolate the security boundary</button>
-        </div>
-        <p class="quiz-feedback"></p>
-      </li>
-      <li class="quiz-question" data-correct="1" data-explain="The IAM policy controls whether the caller may invoke the selected model. It is separate from the model's generated content and from the local citation check.">
-        <p class="q-text">What does the Bedrock invoke permission control?</p>
-        <div class="quiz-options">
-          <button type="button" class="quiz-option">whether callers may invoke Bedrock</button>
-          <button type="button" class="quiz-option">whether callers may invoke service</button>
-          <button type="button" class="quiz-option">whether callers may invoke content</button>
-        </div>
-        <p class="quiz-feedback"></p>
-      </li>
-      <li class="quiz-question" data-correct="0" data-explain="Converse returns a normalized response with output, stop reason, usage, and metrics, so usage and latency can become control-plane measurements.">
-        <p class="q-text">Which fields should the exercise inspect beyond text?</p>
-        <div class="quiz-options">
-          <button type="button" class="quiz-option">stop reason usage and latency</button>
-          <button type="button" class="quiz-option">model usage latency and costs</button>
-          <button type="button" class="quiz-option">prompt text usage and latency</button>
-        </div>
-        <p class="quiz-feedback"></p>
-      </li>
-      <li class="quiz-question" data-correct="0" data-explain="A managed Bedrock Guardrail can evaluate configured content policies, while the application still needs its own authorization, provenance, and faithfulness checks.">
-        <p class="q-text">What does a Bedrock Guardrail not prove by itself?</p>
-        <div class="quiz-options">
-          <button type="button" class="quiz-option">that cited text supports claims</button>
-          <button type="button" class="quiz-option">that blocked text follows rules</button>
-          <button type="button" class="quiz-option">that chosen topics must trigger</button>
-        </div>
-        <p class="quiz-feedback"></p>
-      </li>
-      <li class="quiz-question" data-correct="1" data-explain="A truthful interview answer names the personal project, the exact boundary, the measurements, and the fact that it was not production operation.">
-        <p class="q-text">What makes this a credible cloud project?</p>
-        <div class="quiz-options">
-          <button type="button" class="quiz-option">a personal build with broad claims</button>
-          <button type="button" class="quiz-option">a personal build with clear limits</button>
-          <button type="button" class="quiz-option">a personal build with vague limits</button>
-        </div>
-        <p class="quiz-feedback"></p>
-      </li>
-    </ol>
-  </div>
+  <h2>Practice without the answer in front of you</h2>
+  <p>Close the code and the earlier diagrams. These checks ask you to produce an answer before you compare it.</p>
+
+  <section class="practice" data-practice="predict">
+    <p class="practice-head">Predict then compare · boundary</p>
+    <p>A response contains a valid-looking citation, but the citation does not support its claim. Which control should reject it? State what the other three layers do instead.</p>
+    <label for="boundary-prediction">Your prediction</label>
+    <textarea id="boundary-prediction"></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>The application’s claim-level faithfulness check should reject it. IAM decides whether a caller may invoke the model. A Bedrock Guardrail applies configured content policy. A citation-shape check only verifies that a known evidence ID appears. None of those alone proves entailment.</p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="defect">
+    <p class="practice-head">Spot the defect · IAM</p>
+    <p>Read this proposed policy before choosing the defect you would raise in review.</p>
+    <pre><code>{
+  "Effect": "Allow",
+  "Action": "bedrock:InvokeModel",
+  "Resource": "*"
+}</code></pre>
+    <button type="button" data-defect-choice data-correct="true" data-why="Yes. The policy authorizes invocation, but it grants it for every matching Bedrock model. Start with the one model or inference profile the lab uses, then widen only for a concrete need.">It grants model invocation too broadly.</button>
+    <button type="button" data-defect-choice data-correct="false" data-why="IAM authorizes a caller. It does not inspect whether generated claims match cited evidence. Keep that check in the application.">It cannot verify citation entailment.</button>
+    <button type="button" data-defect-choice data-correct="false" data-why="The action is the relevant invocation permission. The defect is the unrestricted resource, not a missing requirement to place the Region in the action name.">It omits the Region from the action name.</button>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+  </section>
+
+  <section class="practice" data-practice="cloze">
+    <p class="practice-head">Fill the control path</p>
+    <p>Complete the path for a grounded response. The choices are about responsibility, not the example in this lesson.</p>
+    <label for="cloze-iam">The control that authorizes the caller is</label>
+    <select id="cloze-iam">
+      <option value="">Choose one</option>
+      <option value="iam" data-correct="true">IAM permission</option>
+      <option value="guardrail" data-why="A Guardrail evaluates configured content policy. It does not decide whether this caller may invoke a model.">Bedrock Guardrail</option>
+      <option value="citation" data-why="A citation check evaluates the response after generation. It cannot grant API access.">Citation check</option>
+    </select>
+    <label for="cloze-guardrail">The control that applies configured content policy is</label>
+    <select id="cloze-guardrail">
+      <option value="">Choose one</option>
+      <option value="iam" data-why="IAM controls a caller’s permission, not the input and output content policies.">IAM permission</option>
+      <option value="guardrail" data-correct="true">Bedrock Guardrail</option>
+      <option value="citation" data-why="A citation check checks evidence references. It does not apply managed content policy.">Citation check</option>
+    </select>
+    <label for="cloze-route">The control that accepts, abstains, retries, or escalates is</label>
+    <select id="cloze-route">
+      <option value="">Choose one</option>
+      <option value="iam" data-why="IAM permits or denies invocation. It does not decide the application’s response route.">IAM permission</option>
+      <option value="guardrail" data-why="A Guardrail may intervene, but the application still decides what to return or do next.">Bedrock Guardrail</option>
+      <option value="route" data-correct="true">Application route</option>
+    </select>
+    <button type="button" data-practice-check>Check the path</button>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">Explain then diff · interview freeze</p>
+    <p>In four or five sentences, describe your Bedrock project truthfully to an interviewer. Include the cloud boundary and what you measured. Do not claim production operation.</p>
+    <label for="interview-answer">Your answer</label>
+    <textarea id="interview-answer"></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Reveal a model answer and self-check</summary>
+      <p>I built a personal Python integration with Bedrock’s Converse API. My app selected evidence and kept the citation gate locally, while an adapter sent the request to Bedrock. I configured the Region, model ID, and invoke permission. I recorded stop reason, token usage, latency, and the route selected after the local check. It was a learning project, not production operation.</p>
+      <p>Tick the claims your own answer made.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Names a personal build</label></li>
+        <li><label><input type="checkbox"> Names what stayed in the application and what crossed to Bedrock</label></li>
+        <li><label><input type="checkbox"> Names a configuration or permission control</label></li>
+        <li><label><input type="checkbox"> Names observed runtime fields</label></li>
+        <li><label><input type="checkbox"> States the production boundary</label></li>
+      </ul>
+    </details>
+  </section>
 
   <h2>Read this next</h2>
   <div class="callout">

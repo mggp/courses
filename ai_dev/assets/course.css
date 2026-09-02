@@ -271,6 +271,53 @@ kbd {
 }
 .quiz-feedback.show { display: block; }
 
+/* ---------- production-first practice ---------- */
+.practice {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1.1rem 1.3rem 1.25rem;
+  margin: 1.5rem 0;
+}
+.practice-head {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.8rem;
+}
+.practice textarea, .practice select {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0.45rem 0 0;
+  padding: 0.55rem 0.7rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+}
+.practice textarea { min-height: 7rem; resize: vertical; }
+.practice button {
+  margin: 0.65rem 0 0;
+  padding: 0.5rem 0.8rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+.practice button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.practice .right { background: var(--good-soft); border-color: var(--good); }
+.practice .wrong { background: var(--bad-soft); border-color: var(--bad); }
+.practice-message { min-height: 1.4rem; margin: 0.6rem 0 0; }
+.practice details { margin-top: 0.8rem; }
+.practice details > * + * { margin-top: 0.6rem; }
+.claim-list { padding-left: 1.2rem; }
+.claim-list input { margin-right: 0.45rem; }
+
 /* ---------- footer ---------- */
 .lesson-footer {
   margin-top: 3.5rem;

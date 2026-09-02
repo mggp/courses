@@ -51,7 +51,8 @@ length/word count, inheriting the `quiz.js` equal-length rule; (3) stay
 browser-only unless a coding task is genuinely the point; (4) prefer artifacts
 grading **production** over **recognition**; (5) add a checker alongside
 `check_quiz.py` that verifies reveal-gating, distractor mapping, and claim checklists
-before shipping. See LR-0015 for the exact selection guide.
+before shipping. Run <code>python3 scripts/check_practice.py</code> for lessons that
+use the browser-only practice widgets. See LR-0015 for the exact selection guide.
 
 ## Observed preferences (session 2)
 
