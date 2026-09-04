@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4: Let content set the breakpoint</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/responsive-layout-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 4 · about 12 minutes</p>
+      <h1>Let content set the breakpoint</h1>
+      <p class="lede">A breakpoint is not a phone model. It is the width where the current composition can no longer preserve its relationships.</p>
+      <div class="goal"><strong>Your win:</strong> calculate a layout's width budget and place its breakpoint where that budget stops fitting.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="budget">
+      <h2 id="budget">Start with the layout budget</h2>
+      <p>Give each region a minimum useful width. Add the gap and outer insets. The sum is the smallest width that supports the multi-column composition.</p>
+      <div class="layout-budget" aria-label="Example layout budget">17rem primary + 11rem secondary + 1.25rem gap + 2.5rem insets = 31.75rem</div>
+      <p>Below roughly 32rem, one of those constraints must give. Shrinking both regions preserves the grid but damages the content. Stacking the secondary region preserves both.</p>
+      <p><a href="https://web.dev/articles/responsive-web-design-basics#how-to-choose-breakpoints">web.dev recommends choosing breakpoints from content rather than device classes</a>. Device names describe hardware. Your breakpoint describes a composition.</p>
+    </section>
+
+    <section class="lab" aria-labelledby="responsive-lab-title">
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Responsive layout lab</p>
+          <h2 id="responsive-lab-title">Find where the columns stop working</h2>
+          <p>The starting breakpoint is 420px. Change the available width to inspect the failure, then move the breakpoint to match the layout budget.</p>
+        </div>
+        <button type="button" data-layout-reset>Reset borrowed breakpoint</button>
+      </div>
+
+      <div class="responsive-stage">
+        <div class="responsive-frame" data-responsive-frame>
+          <div class="responsive-bar"><span>COMMONPLACE</span><span>Reading queue</span></div>
+          <div class="responsive-layout" data-responsive-layout>
+            <article class="reading-primary">
+              <p class="kicker">Next in your queue</p>
+              <h3>How streets remember rain</h3>
+              <p>Resume your notes on drainage, shade, and the small signs that make a route legible.</p>
+              <button type="button">Continue reading</button>
+            </article>
+            <aside class="reading-secondary" aria-label="September reading summary">
+              <h4>September</h4>
+              <p>Your collection at a glance.</p>
+              <div class="reading-stat"><span>Notes captured</span><strong>12</strong></div>
+              <div class="reading-stat"><span>Essays finished</span><strong>4</strong></div>
+              <div class="reading-stat"><span>Queue remaining</span><strong>9</strong></div>
+            </aside>
+          </div>
+        </div>
+        <p class="layout-state" data-layout-state aria-live="polite"></p>
+      </div>
+
+      <div class="controls" aria-label="Responsive layout controls">
+        <div class="control">
+          <label for="available-width">Available width</label>
+          <input id="available-width" type="range" min="360" max="760" step="10" value="480" data-preview-width>
+          <output for="available-width">480px</output>
+        </div>
+        <div class="control">
+          <label for="layout-breakpoint">Switch to one column</label>
+          <input id="layout-breakpoint" type="range" min="400" max="660" step="10" value="420" data-layout-breakpoint>
+          <output for="layout-breakpoint">420px</output>
+        </div>
+      </div>
+
+      <div class="prompt">
+        <p class="feedback" data-layout-feedback aria-live="polite">The 420px breakpoint is borrowed from a device chart. At 480px available width, this composition still forces two cramped columns.</p>
+        <button type="button" data-layout-check>Check breakpoint</button>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="method">
+      <h2 id="method">Preserve relationships, not coordinates</h2>
+      <p>Wide and narrow layouts are two arrangements of the same priorities. The primary reading task comes first in both. The summary sits beside it when space permits and follows it when space does not.</p>
+      <p>This is why source order matters. A desktop grid can place regions almost anywhere. When the grid collapses, the document order should still produce the intended reading order.</p>
+
+      <h2>Use the right available width</h2>
+      <p>If this composition fills a page, a viewport breakpoint may describe its available room. If it lives inside a dashboard panel, the panel width matters instead. The design question stays the same even if the implementation changes from a media query to a container query.</p>
+
+      <h2>Reflow is a floor, not the whole design</h2>
+      <p><a href="https://www.w3.org/WAI/WCAG22/Understanding/reflow">WCAG 2.2 requires most vertically scrolling content to work at a width equivalent to 320 CSS pixels</a> without losing information or forcing scrolling in two directions. Passing that check prevents a serious failure. It does not prove that every intermediate width is well composed.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“The two-column layout persists below the minimum useful width of its regions, so the summary becomes cramped before the mobile breakpoint. Stack the summary when the composition falls below 32rem. Preserve the primary-first source order and keep type, color, and content unchanged.”</p>
+
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps">
+        <li>Choose one multi-column region and name the job of each column.</li>
+        <li>Estimate the minimum useful width of each column, then add gaps and insets.</li>
+        <li>Resize slowly through that width and record the first visible failure.</li>
+        <li>Write one revision request that changes composition only.</li>
+      </ol>
+      <div class="note">Send me the layout budget, the first failure you observed, the intended stacked order, and your composition-only revision.</div>
+
+      <h2>Primary source</h2>
+      <p>Read <a href="https://web.dev/articles/responsive-web-design-basics#how-to-choose-breakpoints">“How to choose breakpoints” from web.dev</a>. Focus on its small-first method and its warning against device classes. Keep the <a href="../reference/responsive-composition-checklist.html">responsive composition checklist</a> open while resizing your own page.</p>
+      <p>Ask me if a region has no obvious minimum width. We can derive it from its text, controls, and intended comparison.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0003-type-roles-not-random-sizes.html">Previous: give text a role</a>
+      <a href="../reference/responsive-composition-checklist.html">Reference: responsive composition</a>
+    </nav>
+  </main>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Type-role checklist</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Quick reference</p>
+      <h1>Typography by role</h1>
+      <p class="lede">Name the job first. Choose values second. Reuse the result anywhere that job appears.</p>
+    </header>
+
+    <section class="reference-grid" aria-label="Typography checks">
+      <article class="reference-card">
+        <h2>1. Name each role</h2>
+        <p>Use names tied to purpose, such as task heading, section heading, control label, body copy, supporting copy, or metadata.</p>
+      </article>
+      <article class="reference-card">
+        <h2>2. Compare neighbors</h2>
+        <p>Ask whether nearby roles differ enough in size or weight. Do not evaluate a font value in isolation.</p>
+      </article>
+      <article class="reference-card">
+        <h2>3. Protect readability</h2>
+        <p>Quiet text with hierarchy, not punishment. Avoid tiny body copy, cramped multi-line text, and weak contrast.</p>
+      </article>
+      <article class="reference-card">
+        <h2>4. Reuse the rule</h2>
+        <p>Equivalent roles should use the same type style across screens. If one differs, state the reason.</p>
+      </article>
+      <article class="reference-card">
+        <h2>5. Check semantics</h2>
+        <p>Inspect heading levels separately from visual size. CSS can change emphasis, but it cannot repair the document outline.</p>
+      </article>
+      <article class="reference-card">
+        <h2>6. Test overrides</h2>
+        <p>Increase text spacing and zoom. Text must reflow without clipping, overlap, or lost controls.</p>
+      </article>
+    </section>
+
+    <section class="prose">
+      <h2>A critique sentence</h2>
+      <p class="critique-line">“These two roles use nearly identical typography, so their importance is unclear. Promote the task heading through size and keep the supporting copy readable. Change no other visual variable.”</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="../reference/glossary.html">Field glossary</a>
+      <a href="../lessons/0003-type-roles-not-random-sizes.html">Lesson 3: type roles</a>
+    </nav>
+  </main>
+</body>
+</html>

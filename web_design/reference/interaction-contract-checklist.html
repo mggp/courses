@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interaction contract checklist</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Quick reference</p>
+      <h1>Audit the control's promise</h1>
+      <p class="lede">A familiar control teaches people what will happen before they use it. Check the cue, behavior, and result as one contract.</p>
+    </header>
+
+    <section class="reference-grid" aria-label="Interaction contract checks">
+      <article class="reference-card">
+        <h2>1. Predict from the cue</h2>
+        <p>Hide the implementation. From the label, shape, icon, position, and current state, write what you expect the control to do.</p>
+      </article>
+      <article class="reference-card">
+        <h2>2. Name the pattern</h2>
+        <p>Classify the task before styling it. Navigation changes location. A disclosure reveals content. A toggle changes a persistent setting.</p>
+      </article>
+      <article class="reference-card">
+        <h2>3. Compare the behavior</h2>
+        <p>Activate the control by pointer and keyboard. Record the change in content, location, focus, and state.</p>
+      </article>
+      <article class="reference-card">
+        <h2>4. Inspect the feedback</h2>
+        <p>The interface should expose the current state and the result of the action. A silent delay or hidden change makes a correct pattern feel broken.</p>
+      </article>
+      <article class="reference-card">
+        <h2>5. Keep one contract</h2>
+        <p>If the prediction and behavior disagree, change the cue or the behavior. Do not decorate the mismatch.</p>
+      </article>
+      <article class="reference-card">
+        <h2>6. Check the semantics</h2>
+        <p>Use the native element where possible. Expose the control's name, role, and state to assistive technology.</p>
+      </article>
+    </section>
+
+    <section class="prose">
+      <h2>A critique sentence</h2>
+      <p class="critique-line">“The chevron and row treatment promise an inline disclosure, but activation navigates away. Keep the editor in place, reveal the controls below the row, and expose the expanded state.”</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="../reference/glossary.html">Field glossary</a>
+      <a href="../lessons/0005-a-control-makes-a-promise.html">Lesson 5: interaction contracts</a>
+    </nav>
+  </main>
+</body>
+</html>

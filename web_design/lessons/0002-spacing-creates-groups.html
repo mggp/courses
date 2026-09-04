@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 2: Spacing creates groups</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/grouping-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 2 · about 12 minutes</p>
+      <h1>Spacing creates groups</h1>
+      <p class="lede">White space is not leftover room. It tells the reader which elements belong together before they read a word.</p>
+      <div class="goal"><strong>Your win:</strong> repair the grouping of a code-entry screen and describe the change as a relationship.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="rule">
+      <h2 id="rule">The rule is relative</h2>
+      <p>People tend to perceive nearby elements as related and separated elements as different groups. This is the Gestalt principle of <a href="../reference/glossary.html#proximity">proximity</a>. Nielsen Norman Group gives the same account in its <a href="https://www.nngroup.com/videos/proximity-gestalt/">three-minute proximity lesson</a>.</p>
+      <p>Do not begin with “Should this gap be 16 or 24 pixels?” Begin with “Should this gap be smaller or larger than the one beside it?”</p>
+
+      <div class="relationship-map" aria-label="Relative spacing rules">
+        <div><strong>Label → field</strong><span>Smallest gap. The label identifies this control.</span></div>
+        <div><strong>Instruction → form</strong><span>Small gap. Both belong to the task.</span></div>
+        <div><strong>Task → reassurance</strong><span>Largest gap. This begins a new group.</span></div>
+      </div>
+    </section>
+
+    <section class="lab" aria-labelledby="grouping-lab-title">
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Grouping lab</p>
+          <h2 id="grouping-lab-title">Make two groups</h2>
+          <p>The starting card uses equal gaps, so its structure is mushy. Adjust the gaps until the task and reassurance read as separate groups.</p>
+        </div>
+        <button type="button" data-grouping-reset>Reset equal gaps</button>
+      </div>
+
+      <div class="code-card" data-code-card>
+        <h3>Enter your six-digit code</h3>
+        <div class="code-form">
+          <label class="code-label" for="lesson-code">Code from your email</label>
+          <input class="code-input" id="lesson-code" type="text" inputmode="numeric" maxlength="6" aria-describedby="code-format">
+          <span id="code-format" hidden>Enter the six-digit code sent by email.</span>
+          <button class="code-submit" type="button">Open my learning space</button>
+        </div>
+        <div class="code-support">
+          <strong>Your inbox is ready</strong>
+          A short code keeps your learning space personal and secure.
+        </div>
+      </div>
+
+      <div class="controls" aria-label="Spacing controls">
+        <div class="control">
+          <label for="instruction-gap">Instruction → form</label>
+          <input id="instruction-gap" type="range" min="4" max="48" value="24" data-gap-control="instruction">
+          <output for="instruction-gap">24px</output>
+        </div>
+        <div class="control">
+          <label for="label-gap">Label → field</label>
+          <input id="label-gap" type="range" min="4" max="48" value="24" data-gap-control="label">
+          <output for="label-gap">24px</output>
+        </div>
+        <div class="control">
+          <label for="support-gap">Task → reassurance</label>
+          <input id="support-gap" type="range" min="4" max="64" value="24" data-gap-control="support">
+          <output for="support-gap">24px</output>
+        </div>
+      </div>
+
+      <div class="prompt">
+        <p class="feedback" data-grouping-feedback aria-live="polite">All gaps are equal. Where does one group end and the next begin?</p>
+        <button type="button" data-grouping-check>Check grouping</button>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="method">
+      <h2 id="method">Read spacing as nested scope</h2>
+      <p>A label and input form the smallest unit. That unit joins the submit action to form a larger task group. The reassurance follows as a separate group. Each boundary needs more space than the relationships inside it.</p>
+      <p>This resembles nested scope in code. Indentation does not create program semantics, but it exposes them. Spacing does the same for interface structure.</p>
+      <p><a href="https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p06-control-actions/">W3C guidance for cognitive accessibility</a> recommends visually grouping controls with the content they affect and using white space or dividers between separate regions.</p>
+
+      <h2>Boxes are a stronger signal</h2>
+      <p>A border or background creates a <a href="../reference/glossary.html#common-region">common region</a>. Use it when proximity alone cannot keep a group intact, such as a dense dashboard. On a small form, another card inside the main card usually repeats what spacing already says.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“Equal vertical gaps make the instruction, form, and reassurance read as one group. Tighten the label-to-field gap, keep the instruction close to the form, and add more space before the reassurance. Keep type scale and color unchanged.”</p>
+
+      <h2>Do this on your code screen</h2>
+      <ol class="steps">
+        <li>Name every group without referring to its visual container.</li>
+        <li>Find the smallest within-group gap and the smallest between-group gap.</li>
+        <li>Check whether the between-group gap is clearly larger.</li>
+        <li>Write one revision request that changes spacing only.</li>
+      </ol>
+      <div class="note">Send me the groups you named and your spacing-only revision. Include pixel values only if you measured the current interface first.</div>
+
+      <h2>Primary source</h2>
+      <p>Watch <a href="https://www.nngroup.com/videos/proximity-gestalt/">“Proximity: Gestalt Principle for User Interface Design”</a>. It runs for three minutes. Keep the <a href="../reference/grouping-checklist.html">grouping checklist</a> open when reviewing your own pages.</p>
+      <p>Ask me about any grouping that feels ambiguous. Those edge cases are where the principle becomes useful.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0001-seeing-visual-hierarchy.html">Previous: visual hierarchy</a>
+      <a href="0003-type-roles-not-random-sizes.html">Next: give text a role</a>
+    </nav>
+  </main>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 1: See the attention order</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/hierarchy-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 1 · about 12 minutes</p>
+      <h1>See the attention order</h1>
+      <p class="lede">A page can be valid, responsive, and tasteful yet still feel wrong. Often the page has failed to decide what matters most.</p>
+      <div class="goal"><strong>Your win:</strong> diagnose a page's visual hierarchy and make one precise revision request.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="model">
+      <h2 id="model">Start with intent</h2>
+      <p>Before styling a page, write its intended reading order as a sentence:</p>
+      <p class="critique-line">“People should notice the project promise, then the proof, then the action.”</p>
+      <p>This is a design contract. The rendered page either supports that order or it does not. <a href="https://www.nngroup.com/articles/visual-hierarchy-ux-definition/">Nielsen Norman Group defines visual hierarchy</a> as arranging elements so the eye meets them in their intended order of importance.</p>
+      <p>Four variables do most of the early work: size, contrast, spacing, and position. None is inherently good. A large element is useful only when it deserves attention.</p>
+    </section>
+
+    <section class="lab" aria-labelledby="lab-title">
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Attention lab</p>
+          <h2 id="lab-title">Debug the hierarchy</h2>
+          <p>Look at the mock page for three seconds. Choose what caught your eye first. Then reveal the diagnosis.</p>
+        </div>
+        <button type="button" data-reset>Reset flat design</button>
+      </div>
+
+      <div class="mock-page flat" data-mock-page>
+        <nav class="mock-nav" aria-label="Mock project navigation">
+          <span>FIELDNOTE</span>
+          <span>03 updates</span>
+        </nav>
+        <div class="mock-content">
+          <p class="mock-meta">A field journal for long walks</p>
+          <h3 class="mock-title">Remember the route, not the screen.</h3>
+          <p class="mock-copy">Capture a place with one photograph, a short note, and the path that took you there.</p>
+          <div class="mock-actions">
+            <span class="button primary">Start a fieldnote</span>
+            <span class="button">Browse recent walks</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="prompt">
+        <div>
+          <strong>What caught your eye first?</strong>
+          <div class="choices" role="group" aria-label="Attention prediction">
+            <button class="choice" type="button" data-choice="title" aria-pressed="false">Project title</button>
+            <button class="choice" type="button" data-choice="update" aria-pressed="false">Update badge</button>
+            <button class="choice" type="button" data-choice="action" aria-pressed="false">Primary action</button>
+          </div>
+        </div>
+        <button type="button" data-reveal>Reveal diagnosis</button>
+      </div>
+      <p class="feedback" data-feedback aria-live="polite"></p>
+
+      <div class="controls" aria-label="Hierarchy controls">
+        <div class="control">
+          <label for="title-size">Title size</label>
+          <input id="title-size" type="range" min="32" max="72" value="52" data-control data-target=".mock-title" data-property="--lab-title-size" data-unit="px" data-label="{value}px title">
+          <output for="title-size">Not applied</output>
+        </div>
+        <div class="control">
+          <label for="copy-width">Copy width</label>
+          <input id="copy-width" type="range" min="22" max="42" value="32" data-control data-target=".mock-copy" data-property="max-width" data-unit="rem" data-label="{value}rem copy">
+          <output for="copy-width">Not applied</output>
+        </div>
+        <div class="control">
+          <label for="action-gap">Action separation</label>
+          <input id="action-gap" type="range" min="8" max="48" value="24" data-control data-target=".mock-actions" data-property="margin-top" data-unit="px" data-label="{value}px gap">
+          <output for="action-gap">Not applied</output>
+        </div>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="method">
+      <h2 id="method">Use the three-pass test</h2>
+      <ol class="steps">
+        <li><strong>Name the intended order.</strong> Limit it to three beats. If everything matters equally, the page has no direction.</li>
+        <li><strong>Run the squint test.</strong> Blur your eyes or step back. Fine detail disappears, leaving the strongest masses and contrasts.</li>
+        <li><strong>Change one variable.</strong> Adjust scale, contrast, spacing, or position. Run the test again and describe what moved.</li>
+      </ol>
+      <p>Contrast that helps attention is not the same as contrast required for legibility. A quiet paragraph may still need a text contrast ratio of at least 4.5:1 under <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html">WCAG 2.2's minimum contrast guidance</a>.</p>
+
+      <h2>Make the critique specific</h2>
+      <p>“Make it pop” gives an AI no stable target. Give it an intended order, identify the conflict, and constrain the revision:</p>
+      <p class="critique-line">“The metadata and headline have similar visual weight, so the entry point is ambiguous. Make the headline dominant through type scale. Keep the palette and layout unchanged.”</p>
+      <p>That request is inspectable. You can compare the next result against the same contract.</p>
+
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps">
+        <li>Open a page that has never felt right.</li>
+        <li>Write the intended first, second, and third points of attention before looking closely.</li>
+        <li>Squint at the page and record the actual order.</li>
+        <li>Write one revision request using the model above. Change only one variable.</li>
+      </ol>
+      <div class="note">When you finish, send me the intended order, the actual order, and your revision sentence. I’ll critique the diagnosis before we move on.</div>
+
+      <h2>Primary source</h2>
+      <p>Read <a href="https://www.nngroup.com/articles/visual-hierarchy-ux-definition/">“Visual Hierarchy in UX” by Kelley Gordon</a>. Pay attention to how scale, contrast, and grouping change importance. The <a href="../reference/glossary.html">course glossary</a> keeps the terms from this lesson close at hand.</p>
+      <p>If any distinction is unclear, ask me a follow-up question. Examples from your own sites are especially useful.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="../reference/glossary.html">Reference: field glossary</a>
+      <a href="0002-spacing-creates-groups.html">Next: spacing creates groups</a>
+    </nav>
+  </main>
+</body>
+</html>

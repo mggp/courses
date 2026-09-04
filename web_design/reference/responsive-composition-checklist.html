@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Responsive composition checklist</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Quick reference</p>
+      <h1>Break where the content breaks</h1>
+      <p class="lede">Choose responsive changes from layout constraints. Device labels are poor substitutes for inspecting the composition.</p>
+    </header>
+
+    <section class="reference-grid" aria-label="Responsive composition checks">
+      <article class="reference-card">
+        <h2>1. Name the regions</h2>
+        <p>State the job and priority of each column. Decorative geometry is not a reason to preserve a layout.</p>
+      </article>
+      <article class="reference-card">
+        <h2>2. Set minimum widths</h2>
+        <p>Find the narrowest useful width for each region. Use real content and realistic control labels.</p>
+      </article>
+      <article class="reference-card">
+        <h2>3. Add the budget</h2>
+        <p>Combine region minimums, gaps, and insets. This estimates where the current composition stops fitting.</p>
+      </article>
+      <article class="reference-card">
+        <h2>4. Sweep around the switch</h2>
+        <p>Resize slowly above and below the estimate. Watch for awkward wrapping, crushed controls, and broken priority.</p>
+      </article>
+      <article class="reference-card">
+        <h2>5. Check stacked order</h2>
+        <p>Remove the columns mentally. The remaining document order should match the intended reading order.</p>
+      </article>
+      <article class="reference-card">
+        <h2>6. Test the floor</h2>
+        <p>At 320 CSS pixels, most vertical content must reflow without lost information or two-dimensional scrolling.</p>
+      </article>
+    </section>
+
+    <section class="prose">
+      <h2>A critique sentence</h2>
+      <p class="critique-line">“The columns persist below their minimum useful widths. Stack the secondary region when their width budget stops fitting, and preserve the primary-first source order.”</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="../reference/glossary.html">Field glossary</a>
+      <a href="../lessons/0004-let-content-set-the-breakpoint.html">Lesson 4: content breakpoints</a>
+    </nav>
+  </main>
+</body>
+</html>

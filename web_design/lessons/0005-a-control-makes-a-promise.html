@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 5: A control makes a promise</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/interaction-contract-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 5 · about 10 minutes</p>
+      <h1>A control makes a promise</h1>
+      <p class="lede">People read a control before they use it. Its label, shape, icon, position, and state predict what activation will do.</p>
+      <div class="goal"><strong>Your win:</strong> diagnose an interaction by comparing its predicted behavior with its actual behavior.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="contract">
+      <h2 id="contract">Treat the pattern as a contract</h2>
+      <p>An interaction pattern is more than a component's appearance. It joins a cue to a known behavior and makes the result visible.</p>
+      <div class="contract-map" aria-label="The three parts of an interaction contract">
+        <div><strong>Cue</strong><span>What the control lets a person predict.</span></div>
+        <div><strong>Behavior</strong><span>What activation changes and where.</span></div>
+        <div><strong>Feedback</strong><span>How the interface exposes the result.</span></div>
+      </div>
+      <p>This gives you a useful debugging question: where does the observed interaction first depart from the prediction? A prettier control cannot repair the wrong transition.</p>
+    </section>
+
+    <section class="lab" aria-labelledby="contract-lab-title" data-contract-lab>
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Interaction contract lab</p>
+          <h2 id="contract-lab-title">Catch a broken disclosure</h2>
+          <p>Product requirement: people must adjust optional publishing settings without leaving the editor.</p>
+        </div>
+      </div>
+
+      <div class="interaction-stage">
+        <div class="settings-window">
+          <div class="settings-bar"><span>FIELD NOTES</span><span>Draft editor</span></div>
+          <section class="settings-view" data-editor-view>
+            <h3>Publish “Evening insects”</h3>
+            <p>The title and body are ready. Optional controls are tucked away.</p>
+            <button class="setting-row" type="button" aria-expanded="false" aria-controls="advanced-publishing" data-disclosure>
+              <span>Advanced publishing</span><span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="advanced-panel" id="advanced-publishing" data-advanced-panel hidden>
+              <label><input type="checkbox"> Allow public comments</label>
+              <label><input type="checkbox"> Add to the weekly digest</label>
+            </div>
+            <p class="stage-result" data-stage-result aria-live="polite">Inspect the row before using it.</p>
+          </section>
+          <section class="settings-view" data-page-view hidden>
+            <p class="kicker">New location</p>
+            <h3>Advanced publishing</h3>
+            <p>The editor has been replaced by a separate settings page.</p>
+            <button type="button" data-return-editor>Return to editor</button>
+          </section>
+        </div>
+      </div>
+
+      <div class="lab-sequence">
+        <section class="lab-step">
+          <h3>1. Predict</h3>
+          <p>What does the row promise before activation?</p>
+          <div class="choices">
+            <button class="choice" type="button" aria-pressed="false" data-prediction="inline">Reveal more controls on this page</button>
+            <button class="choice" type="button" aria-pressed="false" data-prediction="navigate">Open advanced settings on another page</button>
+            <button class="choice" type="button" aria-pressed="false" data-prediction="apply">Apply all settings without another step</button>
+          </div>
+          <p class="feedback" data-prediction-feedback aria-live="polite"></p>
+        </section>
+
+        <section class="lab-step">
+          <h3>2. Test and diagnose</h3>
+          <p>Run the current interaction, then name the first broken part.</p>
+          <button type="button" data-try-behavior disabled>Try current behavior</button>
+          <div class="choices">
+            <button class="choice" type="button" aria-pressed="false" data-diagnosis="contract">The cue promises an inline disclosure</button>
+            <button class="choice" type="button" aria-pressed="false" data-diagnosis="label">The label fails to name settings</button>
+            <button class="choice" type="button" aria-pressed="false" data-diagnosis="contrast">The result needs stronger visual contrast</button>
+          </div>
+          <p class="feedback" data-diagnosis-feedback aria-live="polite"></p>
+        </section>
+
+        <section class="lab-step">
+          <h3>3. Repair</h3>
+          <p>The requirement fixes the intended behavior. Keep the cue and make the controls expand in place.</p>
+          <button type="button" data-apply-repair disabled>Apply behavior repair</button>
+        </section>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>Familiar does not mean generic</h2>
+      <p>You can change color, type, spacing, and motion without discarding the learned behavior. The risky move is borrowing a familiar cue while giving it a different job.</p>
+      <p>The W3C disclosure pattern pairs a button and controlled content. A right-pointing arrow commonly means collapsed; activation reveals the content, changes the arrow, and exposes the expanded state. The visual cue, keyboard behavior, and programmatic state describe the same interaction.</p>
+
+      <h2>Start with the user's prediction</h2>
+      <p>When generated UI feels slippery, do not begin with the component library. Ask someone to predict what a control will do without activating it. Then test it. The gap between those answers is evidence.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“The chevron and row treatment promise an inline disclosure, but activation navigates away. Keep the editor in place, reveal the controls below the row, and expose the expanded state.”</p>
+
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps">
+        <li>Choose one control whose behavior is not visible until activation.</li>
+        <li>Write your prediction from its label, shape, icon, position, and state.</li>
+        <li>Activate it with a pointer and keyboard. Record the change in location, content, focus, and state.</li>
+        <li>If prediction and behavior differ, revise either the cue or the behavior. Keep the product requirement fixed.</li>
+      </ol>
+      <div class="note">Send me the control, your prediction, the observed result, and a one-sentence repair. I will challenge the diagnosis before we record it.</div>
+
+      <h2>Primary source</h2>
+      <p>Read the <a href="https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/">W3C WAI disclosure pattern</a>. Focus on the relationship among the arrow, the revealed content, keyboard activation, and <code>aria-expanded</code>. Keep the <a href="../reference/interaction-contract-checklist.html">interaction contract checklist</a> beside one of your own pages.</p>
+      <p>Ask me if the right pattern is unclear. We can work backward from the task and the user's likely prediction.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0004-let-content-set-the-breakpoint.html">Previous: content breakpoints</a>
+      <a href="../reference/interaction-contract-checklist.html">Reference: interaction contracts</a>
+    </nav>
+  </main>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web design field glossary</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <style>
+    .terms { width: min(54rem, 100%); margin: 2rem auto; }
+    .term { display: grid; grid-template-columns: 10rem 1fr; gap: 1.5rem; padding: 1.2rem 0; border-top: 1px solid var(--line); }
+    .term dt { font-weight: 750; }
+    .term dd { margin: 0; }
+    .term p { margin: 0 0 0.35rem; }
+    .term .test { color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: var(--step--1); }
+    @media (max-width: 38rem) { .term { grid-template-columns: 1fr; gap: 0.3rem; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Living reference</p>
+      <h1>Web design field glossary</h1>
+      <p class="lede">Observable language for discussing an interface. Each term includes a question you can apply to a page.</p>
+    </header>
+
+    <dl class="terms">
+      <div class="term" id="hierarchy">
+        <dt>Visual hierarchy</dt>
+        <dd><p>The order in which a composition attracts attention and communicates importance.</p><p class="test">Test: After three seconds, what did you notice first, second, and third?</p></dd>
+      </div>
+      <div class="term" id="dominance">
+        <dt>Dominance</dt>
+        <dd><p>The degree to which one element attracts more attention than nearby elements.</p><p class="test">Test: Is there one clear entry point, or are several elements shouting?</p></dd>
+      </div>
+      <div class="term" id="contrast">
+        <dt>Contrast</dt>
+        <dd><p>A noticeable difference between elements, such as size, weight, value, color, shape, or spacing.</p><p class="test">Test: Which difference is doing useful work, and which is decoration?</p></dd>
+      </div>
+      <div class="term" id="proximity">
+        <dt>Proximity</dt>
+        <dd><p>The distance between elements, which suggests whether they belong together.</p><p class="test">Test: Are related items closer to each other than to unrelated items?</p></dd>
+      </div>
+      <div class="term" id="common-region">
+        <dt>Common region</dt>
+        <dd><p>A boundary, background, or container that makes enclosed elements appear related.</p><p class="test">Test: Does this group need a container, or would spacing alone make the relationship clear?</p></dd>
+      </div>
+      <div class="term" id="alignment">
+        <dt>Alignment</dt>
+        <dd><p>A shared visual edge or axis that makes relationships easier to scan.</p><p class="test">Test: Can you trace a few strong invisible lines through the page?</p></dd>
+      </div>
+      <div class="term" id="rhythm">
+        <dt>Rhythm</dt>
+        <dd><p>A repeated pattern of spacing, size, or form that helps the reader predict structure.</p><p class="test">Test: Do equivalent relationships use equivalent spacing?</p></dd>
+      </div>
+      <div class="term" id="type-role">
+        <dt>Type role</dt>
+        <dd><p>A named text function, such as task heading, control label, or supporting copy, with a reusable visual treatment.</p><p class="test">Test: Does this style express a repeatable job, or was it invented for one element?</p></dd>
+      </div>
+      <div class="term" id="type-scale">
+        <dt>Type scale</dt>
+        <dd><p>A limited set of font sizes used to distinguish text roles consistently.</p><p class="test">Test: Are nearby sizes distinct enough to show a change in role?</p></dd>
+      </div>
+      <div class="term" id="breakpoint">
+        <dt>Breakpoint</dt>
+        <dd><p>The available width where a composition changes because its current arrangement no longer works.</p><p class="test">Test: Which content constraint fails on the other side of this value?</p></dd>
+      </div>
+      <div class="term" id="reflow">
+        <dt>Reflow</dt>
+        <dd><p>The rearrangement of content to fit available space without losing information or requiring two-dimensional scrolling.</p><p class="test">Test: Can a reader zoom or narrow the page and still reach everything by scrolling in one direction?</p></dd>
+      </div>
+      <div class="term" id="pattern">
+        <dt>Interaction pattern</dt>
+        <dd><p>A familiar solution for a recurring user task, such as tabs for switching between peer views.</p><p class="test">Test: Will people recognize how this behaves before trying it?</p></dd>
+      </div>
+      <div class="term" id="interaction-contract">
+        <dt>Interaction contract</dt>
+        <dd><p>The relationship among a control's cue, its behavior when activated, and the feedback that exposes the result.</p><p class="test">Test: Does the control do what its appearance and context led you to predict?</p></dd>
+      </div>
+      <div class="term" id="visual-language">
+        <dt>Visual language</dt>
+        <dd><p>A repeatable set of visual rules that gives a product a recognizable voice.</p><p class="test">Test: Can you name the rules without relying on a style label?</p></dd>
+      </div>
+    </dl>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="../lessons/0001-seeing-visual-hierarchy.html">Lesson 1: visual hierarchy</a>
+      <a href="../lessons/0005-a-control-makes-a-promise.html">Lesson 5: interaction contracts</a>
+    </nav>
+  </main>
+</body>
+</html>

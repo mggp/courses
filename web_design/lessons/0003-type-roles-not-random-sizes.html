@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 3: Give text a role</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/type-role-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 3 · about 12 minutes</p>
+      <h1>Give text a role before a size</h1>
+      <p class="lede">Weak typography often comes from styling each element in isolation. A type system starts by deciding what job each piece of text performs.</p>
+      <div class="goal"><strong>Your win:</strong> turn a flat code-entry screen into a clear task using typography alone.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="roles">
+      <h2 id="roles">Roles create the system</h2>
+      <p>“Make this 28 pixels” describes an output. “This is the task heading” describes why the output exists. Assign the role first, then choose a size, weight, and line height that distinguishes it from nearby roles.</p>
+
+      <div class="role-stack" aria-label="Type roles on the code-entry screen">
+        <div class="role-row"><strong>Task heading</strong><span>Starts the action and carries the strongest textual emphasis.</span></div>
+        <div class="role-row"><strong>Control label</strong><span>Identifies one field. Compact and clear, without competing with the task.</span></div>
+        <div class="role-row"><strong>Supporting copy</strong><span>Explains or reassures after the task is understood. Comfortable to read, but quieter.</span></div>
+      </div>
+
+      <p><a href="https://design-system.service.gov.uk/styles/headings/">The GOV.UK Design System recommends consistent heading styles</a> so readers can recognize content structure across screens. Consistency matters more than finding a perfect font size for one card.</p>
+    </section>
+
+    <section class="lab" aria-labelledby="type-lab-title">
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Type-role lab</p>
+          <h2 id="type-lab-title">Separate the roles</h2>
+          <p>Spacing, color, and layout are fixed. Adjust the type until the instruction leads and the explanation remains readable.</p>
+        </div>
+        <button type="button" data-type-reset>Reset flat type</button>
+      </div>
+
+      <div class="type-card" data-type-card>
+        <h3 class="type-task">Enter your six-digit code</h3>
+        <label for="type-code">Code from your email</label>
+        <input id="type-code" type="text" inputmode="numeric" maxlength="6" aria-describedby="type-code-format">
+        <span id="type-code-format" hidden>Enter the six-digit code sent by email.</span>
+        <button type="button">Open my learning space</button>
+        <p class="type-support"><strong>Your inbox is ready</strong>A short code keeps your learning space personal and secure.</p>
+      </div>
+
+      <div class="controls" aria-label="Typography controls">
+        <div class="control">
+          <label for="task-size">Task heading size</label>
+          <input id="task-size" type="range" min="20" max="42" value="20" data-type-control="taskSize" data-property="--task-size" data-unit="px">
+          <output for="task-size">20px</output>
+        </div>
+        <div class="control">
+          <label for="task-weight">Task heading weight</label>
+          <input id="task-weight" type="range" min="400" max="800" step="100" value="500" data-type-control="taskWeight" data-property="--task-weight">
+          <output for="task-weight">500</output>
+        </div>
+        <div class="control">
+          <label for="support-size">Supporting copy size</label>
+          <input id="support-size" type="range" min="12" max="20" value="18" data-type-control="supportSize" data-property="--support-size" data-unit="px">
+          <output for="support-size">18px</output>
+        </div>
+        <div class="control">
+          <label for="support-leading">Supporting line height</label>
+          <input id="support-leading" type="range" min="1.1" max="1.8" step="0.1" value="1.2" data-type-control="supportLeading" data-property="--support-leading" data-output-unit="×">
+          <output for="support-leading">1.2×</output>
+        </div>
+      </div>
+
+      <div class="prompt">
+        <p class="feedback" data-type-feedback aria-live="polite">The instruction and explanation are close in size, weight, and density. Assign each one a job before changing values.</p>
+        <button type="button" data-type-check>Check type roles</button>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="method">
+      <h2 id="method">Use contrast sparingly</h2>
+      <p>Size, weight, and line height all create typographic contrast. You rarely need to push all three. Start with size for role, add weight when the distinction is still weak, and use line height to suit the reading task.</p>
+      <p>Headings usually tolerate tighter line height because they contain fewer, larger words. Multi-line supporting copy needs more room. Do not make body text tiny or cramped just to quiet it. That trades hierarchy for legibility.</p>
+
+      <h2>Semantics and appearance are separate contracts</h2>
+      <p>An <code>&lt;h1&gt;</code> describes document structure. A large visual style creates emphasis. They often belong together, but changing the font size does not repair incorrect heading markup. GOV.UK notes that rare visual departures from the semantic hierarchy need accessibility testing.</p>
+      <p>W3C does not require authors to set every paragraph to 1.5 line height. <a href="https://www.w3.org/WAI/WCAG22/Understanding/text-spacing">WCAG 2.2 requires the interface to survive a user override to that value</a>, along with larger word, letter, and paragraph spacing, without losing content or function.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“The instruction and reassurance use similar type sizes, so their roles are ambiguous. Promote the instruction to the task-heading style and demote the reassurance to supporting copy. Keep spacing, color, and layout unchanged.”</p>
+
+      <h2>Do this on your code screen</h2>
+      <ol class="steps">
+        <li>Name the role of every visible text element before measuring it.</li>
+        <li>Record the size, weight, and line height used for each role.</li>
+        <li>Find two different roles whose typography is too similar or one shared role styled inconsistently.</li>
+        <li>Write one revision request that changes typography only.</li>
+      </ol>
+      <div class="note">Send me your role map, the values you measured, and the typography-only revision. I’ll check whether the type choices follow the jobs you assigned.</div>
+
+      <h2>Primary source</h2>
+      <p>Read <a href="https://design-system.service.gov.uk/styles/headings/">“Headings” in the GOV.UK Design System</a>. Notice that it defines a small set of reusable styles instead of inventing a new size for every screen. Keep the <a href="../reference/type-role-checklist.html">type-role checklist</a> beside your page review.</p>
+      <p>Ask me about any text element whose role is unclear. Ambiguous roles usually point to a content problem before they point to a font problem.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0002-spacing-creates-groups.html">Previous: spacing creates groups</a>
+      <a href="0004-let-content-set-the-breakpoint.html">Next: let content set the breakpoint</a>
+    </nav>
+  </main>
+</body>
+</html>
