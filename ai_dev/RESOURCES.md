@@ -82,6 +82,12 @@
   Concrete multi-agent tradeoffs: use independent breadth-first work or context isolation; expect higher token cost, coordination complexity, and difficult debugging. Use for: single versus multi-agent choice.
 - [Paper: "MemGPT: Towards LLMs as Operating Systems" — Packer et al. (arXiv:2310.08560)](https://arxiv.org/abs/2310.08560)
   Primary framing for externalized agent memory under a limited context window. Use for: short-term prompt state versus long-term persisted/retrieved memory.
+- [Paper: "Cognitive Architectures for Language Agents" (CoALA), Sumers et al., TMLR 2024 (arXiv:2309.02427)](https://arxiv.org/abs/2309.02427)
+  Primary taxonomy that places an LLM inside a larger agent architecture with working, semantic, episodic, and procedural memory plus explicit retrieval and learning actions. Use for: agent-memory vocabulary and read/write boundaries.
+- [Docs: LangGraph, add and manage memory](https://docs.langchain.com/oss/python/langgraph/add-memory)
+  Official implementation guide separating thread-scoped checkpoints from cross-thread stores, with trimming and summarization for context limits. Use for: mapping memory concepts onto the learner's existing LangGraph experience.
+- [Docs: OpenAI API prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)
+  Official description of exact-prefix reuse and cached-token reporting. Use for: the cost and latency effects of append-only histories, compaction, and changing early prompt content.
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
   Non-vendor governance framework: govern, map, measure, manage AI risk. Use for: interview framing of guardrails as lifecycle controls, not merely prompt filters.
 - [NIST Generative AI Profile, AI 600-1](https://doi.org/10.6028/NIST.AI.600-1)

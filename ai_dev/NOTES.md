@@ -13,6 +13,7 @@
 - Prefers direct instruction over Socratic questioning. Say "go on" — wants me to just build things.
 - Values primary sources and citation over hand-waving. (Asked me not to peek at other workspaces; keep focus here.)
 - Don't make him read other people's files/setups — treat this workspace as self-contained.
+- For a new topic, ask a few diagnostic questions one at a time before generating the lesson.
 
 ## Design choices to keep
 

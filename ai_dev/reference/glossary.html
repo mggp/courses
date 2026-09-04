@@ -128,6 +128,14 @@
 
   <p id="multi-agent"><strong>Multi-agent system</strong>: Multiple agents coordinating on one task. Its defensible use case is a measured need for independent parallel work, context isolation, or separate responsibilities; it also adds token, coordination, latency, and debugging costs.</p>
 
+  <p id="short-term-memory"><strong>Short-term memory</strong>: Agent state scoped to one run or conversation thread, such as messages, tool results, a current plan, or pending approvals. It can be persisted in a checkpoint database, so short-term describes scope rather than volatility. The host may trim or summarize it before a model call.</p>
+
+  <p id="long-term-memory"><strong>Long-term memory</strong>: Selected user-level or application-level information intended for use across conversation threads, such as stable preferences, past outcomes, or learned procedures. Storage alone does not make it visible to a model; the host must retrieve and inject relevant items into the current input.</p>
+
+  <p id="memory-policy"><strong>Memory policy</strong>: The application rules that decide what qualifies for storage, who owns it, how it is selected, where it enters model input, and how it can be corrected, superseded, or deleted. A database is an implementation detail inside this policy, not the policy itself.</p>
+
+  <p id="event-archive"><strong>Event archive</strong>: The application's durable record of messages, tool requests and results, state transitions, approvals, timestamps, and related metadata. It supports resume, audit, debugging, replay, and summary reconstruction. It is not automatically model context or long-term memory; the host must select information from it for a later inference.</p>
+
   <h2>Web delivery and design</h2>
 
   <p id="api-framework"><strong>API framework</strong>: The application boundary that handles HTTP routing, request parsing, validation, serialization, errors, documentation, and often dependency/lifecycle hooks. It should expose the use case; it should not own provider-specific model logic or domain policy by accident.</p>

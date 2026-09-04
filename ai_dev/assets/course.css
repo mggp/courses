@@ -223,6 +223,25 @@ kbd {
 .flow .node .node-sub { color: var(--muted); font-size: 0.72rem; }
 .flow .arrow { align-self: center; color: var(--muted); }
 
+/* ---------- comparison tables ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  font-size: 0.92rem;
+}
+th, td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
 /* ---------- quiz ---------- */
 .quiz {
   background: var(--surface);

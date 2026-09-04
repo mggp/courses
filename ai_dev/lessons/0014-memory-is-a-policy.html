@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 14: Memory is a policy | Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/practice.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 14 · Agent architecture · Memory</p>
+    <h1>Memory is a policy, not a pile of transcripts</h1>
+    <p class="lede">Separate thread state from cross-thread memory, then define how information is written, selected, and placed in the model input.</p>
+    <p class="meta">~15 minutes &nbsp;·&nbsp; Architecture &nbsp;·&nbsp; <a href="../lessons/0009-the-boundary-is-the-system.html">agent boundary</a> &nbsp;·&nbsp; <a href="../reference/glossary.html">glossary</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">Why this lesson</p>
+    <p>You already identified the main split correctly. A tool result belongs to the current run or thread, while a programming-language preference should survive into later threads. The next step is to turn that intuition into an implementation design you can build and explain in an interview.</p>
+  </div>
+
+  <h2>The model has input, not memory</h2>
+  <p>An ordinary model call does not reach into your session database. It can use only the tokens and other supported inputs supplied for that inference. The host application creates the appearance of memory by saving state, selecting some of it later, and placing it back into the model input.</p>
+  <div class="flow">
+    <span class="node"><span class="node-title">Write</span><span class="node-sub">save an event or fact</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Select</span><span class="node-sub">find what matters now</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Inject</span><span class="node-sub">build model input</span></span>
+    <span class="arrow">→</span>
+    <span class="node"><span class="node-title">Use</span><span class="node-sub">one inference</span></span>
+  </div>
+  <p>This is the key boundary. <strong>Stored</strong> means the application can recover information. <strong>In context</strong> means the model can use it on this call. MemGPT makes the distinction explicit: information outside the fixed context window must be moved into the main context before the model can use it. <a href="https://arxiv.org/html/2310.08560#S2">Read the memory hierarchy</a>.</p>
+
+  <h2>Classify by scope before storage technology</h2>
+  <p>Short-term and long-term describe <em>scope</em>, not whether the bytes live in RAM or on disk.</p>
+  <table>
+    <thead>
+      <tr><th>Question</th><th>Short-term memory</th><th>Long-term memory</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Who should see it?</td><td>One run or conversation thread</td><td>Later threads for a user or application</td></tr>
+      <tr><td>Typical contents</td><td>Messages, tool results, current plan, pending approval</td><td>Preferences, stable facts, prior outcomes, learned procedures</td></tr>
+      <tr><td>Typical key</td><td><code>thread_id</code></td><td><code>user_id</code> plus a namespace</td></tr>
+      <tr><td>Can it be durable?</td><td>Yes, through checkpoints or a session store</td><td>It must outlive the thread to serve its purpose</td></tr>
+      <tr><td>How does the model see it?</td><td>The host selects thread state for this call</td><td>The host retrieves relevant items and injects them</td></tr>
+    </tbody>
+  </table>
+  <p>LangGraph reflects this split directly. A checkpointer saves thread state and can use a database in production. A store shares user or application data across threads. Its documentation also warns that long message histories can exceed the context window, so applications trim, delete, or summarize them before inference. <a href="https://docs.langchain.com/oss/python/langgraph/add-memory">See the short-term and long-term implementations</a>.</p>
+
+  <div class="callout">
+    <p class="callout-title">Correction to your starting model</p>
+    <p>Your ReAct description is right for a small loop whose host resends every message. It is not a general guarantee. A production host may persist the complete event history while sending the model only recent messages, a summary, selected tool results, and retrieved memories. The archive and the current context are different objects.</p>
+  </div>
+  <p><strong>Archive</strong> here means the application's durable event history. It may contain every user and assistant message, tool request, tool result, state transition, timestamp, and approval. It supports resuming, auditing, debugging, replay, and rebuilding summaries. It is not automatically long-term memory, and the model does not automatically read it. A memory policy promotes or retrieves selected information from that history when a later inference needs it.</p>
+  <p>In a small append-only loop, prior messages and tool events normally remain in the same order and the host adds the newest event at the end. That shape is friendly to prefix caching. OpenAI's API caches repeated prompt prefixes, so an unchanged history can reuse the earlier prefix while the latest suffix is new. Trimming, summarizing, or inserting changing memory near the beginning changes the token sequence and reduces the reusable prefix. <a href="https://developers.openai.com/api/docs/guides/prompt-caching">See the current prompt-caching guide</a>.</p>
+  <p>Once the history becomes too large, the host may replace an older span with a summary or omit it from model input while retaining the original events in the archive. Removed events are not usually reinserted one by one on every turn. The host retrieves an old event only when it becomes relevant again. Keep a tool request and its result together while a later step still depends on them, then summarize or omit completed detail according to policy.</p>
+
+  <h2>Design the read and write policy</h2>
+  <p>A database alone gives you persistence, not useful memory. For every candidate memory, answer these questions:</p>
+  <ol class="steps">
+    <li><strong>Scope.</strong> Is it useful only inside this thread, or across future threads? Which user, tenant, or agent owns it?</li>
+    <li><strong>Write.</strong> What qualifies for storage? Use explicit user requests or application rules for stable facts. Do not promote every model claim into truth.</li>
+    <li><strong>Select.</strong> Is the item always needed, fetched by an exact key, or searched by meaning? Set a small result limit.</li>
+    <li><strong>Inject.</strong> Where will it enter the model input, and how much token budget may it consume? Label its source and age.</li>
+    <li><strong>Maintain.</strong> How can a user correct, delete, or supersede it? What happens when two memories conflict?</li>
+  </ol>
+  <p>The CoALA paper gives this host-level design a useful vocabulary. Reasoning updates working memory, retrieval reads long-term memory, and learning writes long-term memory. The LLM is one component inside that larger architecture. <a href="https://arxiv.org/html/2309.02427v3#S4.SS1">Read section 4.1 and the surrounding action model</a>.</p>
+
+  <h2>Apply it to an AI tutor</h2>
+  <pre><code># Thread state, checkpointed under thread_id
+current_exercise = "Translate: I missed the train"
+latest_tool_result = {"grammar_check": "past tense is correct"}
+attempts_this_thread = 2
+
+# Cross-thread memory, stored under (tenant_id, user_id, "profile")
+preferred_programming_language = {
+    "value": "Python",
+    "source": "user-stated",
+    "recorded_at": "2026-09-02"
+}</code></pre>
+  <p>The current exercise and grammar result help the next step in this lesson thread. The language preference can tailor code examples months later. A raw transcript may support audit or reprocessing, but it should not be injected wholesale. Retrieve the stable preference by key and include it only when the current task involves code.</p>
+  <p>A claim such as “the learner struggles with the past tense” needs more care. That is an inferred profile, not a user-stated fact. Store evidence and confidence, require repeated observations, and let newer evidence replace it. In a fintech system, add tenant isolation, retention, deletion, audit, and protection against memory poisoning before calling the feature complete.</p>
+
+  <h2>Practice the design decision</h2>
+
+  <section class="practice" data-practice="defect">
+    <p class="practice-head">Spot the defect · scope versus durability</p>
+    <p>A reviewer says: “This cannot be short-term memory because the LangGraph checkpointer saves it in Postgres.” What is the design error?</p>
+    <button type="button" data-defect-choice data-correct="true" data-why="Correct. Thread scope makes it short-term memory. Database persistence makes it durable. Those are separate properties.">They confused memory scope with storage durability.</button>
+    <button type="button" data-defect-choice data-correct="false" data-why="Postgres can persist thread checkpoints. The database choice does not make the state cross-thread memory.">They selected an unsupported checkpoint database.</button>
+    <button type="button" data-defect-choice data-correct="false" data-why="A checkpointer can save far more than messages, including tool results and application state. The issue is the classification rule.">They checkpointed state instead of chat messages.</button>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+  </section>
+
+  <section class="practice" data-practice="predict">
+    <p class="practice-head">Predict then compare · memory contract</p>
+    <p>A user says, “Use Python examples from now on.” Write the minimum memory contract. Name its scope, write trigger, retrieval rule, injection rule, and correction path.</p>
+    <label for="memory-contract">Your contract</label>
+    <textarea id="memory-contract"></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>Scope: the user profile across threads. Write: store only after the explicit user statement, with source and timestamp. Retrieve: fetch the current preference by exact user key when a task needs code examples. Inject: add one labelled sentence to the model input, not the old transcript. Correct or delete: replace the active value when the user changes it, retain history only if policy requires it, and expose deletion.</p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">Explain then diff · interview freeze</p>
+    <p>In four sentences, explain short-term versus long-term agent memory and the role of the context window.</p>
+    <label for="interview-answer">Your answer</label>
+    <textarea id="interview-answer"></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Reveal a model answer and self-check</summary>
+      <p>Short-term memory is state scoped to one run or conversation thread, such as messages, tool results, and the current plan. It may be durable if a checkpointer saves it, so short-term does not mean in-memory. Long-term memory holds selected information that should be available across threads, such as user preferences or prior outcomes. The model can use neither store directly; the host must select or retrieve information and place it inside the context window for each inference.</p>
+      <p>Tick the claims your answer made.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Defines short-term memory by thread scope</label></li>
+        <li><label><input type="checkbox"> Separates scope from durability</label></li>
+        <li><label><input type="checkbox"> Defines long-term memory by cross-thread use</label></li>
+        <li><label><input type="checkbox"> Says the host places selected memory in model input</label></li>
+      </ul>
+    </details>
+  </section>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Ask your teacher</p>
+    <p>Bring me your memory contract or interview answer. I can review its scoping, retrieval policy, privacy boundary, and failure modes without requiring a framework implementation first.</p>
+  </div>
+
+  <h2>Read this next</h2>
+  <div class="callout">
+    <p class="callout-title">Primary source</p>
+    <p>Read <a href="https://arxiv.org/html/2309.02427v3#S4.SS1">CoALA section 4.1</a> for the broader architecture: working memory, long-term semantic, episodic, and procedural memory, plus explicit retrieval and learning actions. Then use the <a href="https://docs.langchain.com/oss/python/langgraph/add-memory">LangGraph memory guide</a> to map that model onto checkpointers, stores, namespaces, trimming, and summarization.</p>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>Key terms: <a href="../reference/glossary.html#short-term-memory">short-term memory</a>, <a href="../reference/glossary.html#long-term-memory">long-term memory</a>, <a href="../reference/glossary.html#memory-policy">memory policy</a>, <a href="../reference/glossary.html#event-archive">event archive</a>, <a href="../reference/glossary.html#context-window">context window</a>.</p>
+    <p class="next">A useful follow-up is to implement this exact contract locally with a thread checkpointer and a user-scoped store, then test isolation, correction, and context-budget behavior.</p>
+  </footer>
+</main>
+</body>
+</html>
