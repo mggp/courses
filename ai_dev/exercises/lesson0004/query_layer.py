@@ -115,6 +115,7 @@ GOLD = [
             "How does the tutor handle a question it cannot answer?",
             "How does the tutor respond when it has no answer?",
             "What happens when no answer can be found for the learner's question?",
+            "If no chunk is close enough, the tutor says it does not know the answer",
         ],
         "hyde": "If no chunk is close enough, the tutor says it does not know rather than guessing.",
      }),

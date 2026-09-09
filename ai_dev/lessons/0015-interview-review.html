@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 15: Interview review | Building AI Systems</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script defer src="../assets/practice.js"></script>
+</head>
+<body>
+<main class="prose">
+
+  <header class="lesson-header">
+    <p class="kicker">Lesson 15 · Interview review · Retrieval practice</p>
+    <h1>Six answers before the interview</h1>
+    <p class="lede">A fast spoken review of the boundaries that make an AI-systems answer credible.</p>
+    <p class="meta">~25 minutes &nbsp;·&nbsp; Speak first &nbsp;·&nbsp; Compare second &nbsp;·&nbsp; <a href="../reference/interview-roadmap.html">roadmap</a></p>
+  </header>
+
+  <div class="callout callout-mission">
+    <p class="callout-title">The win</p>
+    <p>By the end, you will have produced six concise answers under light pressure. This is review, not another reading assignment. Say each answer aloud in 60 to 90 seconds, write only the bones of it, then open the comparison.</p>
+  </div>
+
+  <h2>Your answer frame</h2>
+  <p>Use <strong>definition → trade-off → real example → limit or control</strong>. Do not force all four parts into every sentence. The frame exists to stop a technically correct answer from becoming a glossary recital.</p>
+  <table>
+    <thead><tr><th>Part</th><th>Job</th><th>Useful opening</th></tr></thead>
+    <tbody>
+      <tr><td>Definition</td><td>Draw the boundary</td><td>“RAG retrieves external evidence before generation.”</td></tr>
+      <tr><td>Trade-off</td><td>Show engineering judgment</td><td>“A larger candidate pool can improve recall, but adds latency.”</td></tr>
+      <tr><td>Real example</td><td>Anchor the claim in your work</td><td>“In my local pipeline, I measured recall and faithfulness separately.”</td></tr>
+      <tr><td>Limit or control</td><td>Name what can still fail</td><td>“A valid citation is still not proof that the claim is supported.”</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <p class="callout-title">Truth boundary</p>
+    <p>Your strongest story is precise: senior Python and web work, maintained FastAPI services, about two years of Django, MCP integration in a maintained service, and a personal LangGraph tool. The course RAG pipeline and Bedrock lab are personal work. Do not turn either into production operation.</p>
+  </div>
+
+  <h2>The six-question circuit</h2>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">1 of 6 · RAG and evaluation</p>
+    <p><strong>Question:</strong> Walk me through a RAG system. How do you know it works?</p>
+    <label for="review-rag">Your answer bones</label>
+    <textarea id="review-rag" placeholder="Speak first. Then record the claims you made."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>I split documents into retrievable chunks, embed and index them, retrieve a small evidence set for the question, optionally rerank it, then give that context to the generator with instructions to cite or abstain. I evaluate retrieval and generation separately: recall at k asks whether the needed evidence crossed the context cut, while faithfulness asks whether each answer claim follows from that evidence. In a local capstone I measured both and found that a citation could point to a real chunk without proving the associated claim. I would also test answer relevance, latency, cost, and failure cases on a versioned evaluation set.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Names ingestion, retrieval, generation, and evaluation</label></li>
+        <li><label><input type="checkbox"> Separates recall at k from faithfulness</label></li>
+        <li><label><input type="checkbox"> Says citation does not prove support</label></li>
+        <li><label><input type="checkbox"> Grounds the answer in personal work</label></li>
+      </ul>
+      <p><a href="0007-an-answer-you-can-audit.html">Repair lesson: the auditable capstone</a></p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">2 of 6 · Agents and MCP</p>
+    <p><strong>Question:</strong> What makes a system an agent, and where does MCP fit?</p>
+    <label for="review-agent">Your answer bones</label>
+    <textarea id="review-agent" placeholder="Aim for four sentences."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>An agent is an LLM-driven control loop that chooses a next action, calls a tool, reads the observation, and continues or stops under application policy. A workflow has a path mostly fixed by code, so I prefer it when the steps are known because it is easier to test and constrain. MCP standardizes how a host application connects to server-provided tools, resources, and prompts; it does not supply the planning loop, memory policy, or authorization model. I have built a personal LangGraph tool and integrated MCP tooling into a maintained FastAPI service, which gives me a real boundary example without claiming every LLM feature is an agent.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Defines the decision and observation loop</label></li>
+        <li><label><input type="checkbox"> Contrasts agent with fixed workflow</label></li>
+        <li><label><input type="checkbox"> Keeps planning, memory, and authorization outside MCP</label></li>
+        <li><label><input type="checkbox"> States real LangGraph and MCP experience precisely</label></li>
+      </ul>
+      <p><a href="0009-the-boundary-is-the-system.html">Repair lesson: agent boundaries</a></p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">3 of 6 · Safety</p>
+    <p><strong>Question:</strong> How would you make a financial document assistant safe?</p>
+    <label for="review-safety">Your answer bones</label>
+    <textarea id="review-safety" placeholder="Name enforcement points, not reassuring adjectives."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>I would treat safety as controls around the model, not as one system prompt. The data path needs tenant and document authorization before retrieval, versioned authoritative sources, retrieval evaluation, claim-level evidence checks, and structured output where the application needs typed decisions. Any consequential tool call needs application-side permission checks, input validation, idempotency where appropriate, audit events, and a fail-closed route. If evidence, authorization, or a required check is missing, the assistant should abstain or send the case to human review. Temperature and top-p change sampling; neither enforces policy or truth.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Places authorization before retrieval and tool execution</label></li>
+        <li><label><input type="checkbox"> Separates schema checks from truth checks</label></li>
+        <li><label><input type="checkbox"> Names abstention or human review</label></li>
+        <li><label><input type="checkbox"> Refuses to call sampling controls safety controls</label></li>
+      </ul>
+      <p><a href="0010-safety-is-a-control-plane.html">Repair lesson: safety control plane</a></p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">4 of 6 · Data architecture</p>
+    <p><strong>Question:</strong> When would you choose a vector store, a graph database, or both?</p>
+    <label for="review-data">Your answer bones</label>
+    <textarea id="review-data" placeholder="Start with the query the system must answer."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>I choose from the access pattern. Vector search finds semantically similar evidence, so it fits questions whose wording differs from the source. A graph stores explicit entities and relationships, so it fits multi-hop questions such as which accounts share an owner and connect to a flagged merchant. A hybrid can use vector retrieval to find relevant text, extract or resolve entities, then traverse verified relationships. I would measure it against representative queries because adding a graph creates modeling, extraction, consistency, and operational costs.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Maps vector search to semantic similarity</label></li>
+        <li><label><input type="checkbox"> Maps graph traversal to explicit relationships</label></li>
+        <li><label><input type="checkbox"> Explains a coherent hybrid path</label></li>
+        <li><label><input type="checkbox"> Names the cost of graph construction and upkeep</label></li>
+      </ul>
+      <p><a href="0011-vector-or-graph.html">Repair lesson: vector or graph</a></p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">5 of 6 · Memory</p>
+    <p><strong>Question:</strong> Explain short-term and long-term agent memory. Does persistence change the distinction?</p>
+    <label for="review-memory">Your answer bones</label>
+    <textarea id="review-memory" placeholder="Draw the scope boundary first."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>Short-term memory is state scoped to one run or thread, such as messages, tool results, a plan, and pending approvals. Long-term memory is selected information meant for later threads, such as a stable user preference or a prior outcome. A database can persist either, so durability does not decide the category. The host still has to select or retrieve information and place it into the model input, and the memory policy must define writes, ownership, correction, deletion, and context budget.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> Defines short-term memory by thread scope</label></li>
+        <li><label><input type="checkbox"> Defines long-term memory by cross-thread use</label></li>
+        <li><label><input type="checkbox"> Separates durability from scope</label></li>
+        <li><label><input type="checkbox"> Says the host selects and injects memory</label></li>
+      </ul>
+      <p><a href="0014-memory-is-a-policy.html">Repair lesson: memory policy</a></p>
+    </details>
+  </section>
+
+  <section class="practice" data-practice="explain">
+    <p class="practice-head">6 of 6 · Delivery and cloud</p>
+    <p><strong>Question:</strong> Tell me about your cloud AI experience and how you would productionize an LLM feature.</p>
+    <label for="review-cloud">Your answer bones</label>
+    <textarea id="review-cloud" placeholder="Lead with the truth. Bridge to relevant engineering evidence."></textarea>
+    <p class="practice-message" data-practice-message aria-live="polite"></p>
+    <details data-practice-reveal>
+      <summary>Compare your answer</summary>
+      <p>I have not operated Bedrock, Azure AI, or Vertex AI in production, so I would not claim that experience. My relevant base is maintaining FastAPI services, integrating MCP tooling, building a personal LangGraph tool, and implementing RAG and evaluation mechanics locally. I have a bounded personal Bedrock Converse integration behind an application-owned provider port; that taught me the runtime, Region, model identifier, IAM invoke permission, usage, latency, and failure boundary, but it is still a lab. For production I would keep provider code behind an adapter and design identity, network boundaries, secrets, retries, timeouts, rate limits, evaluation, observability, cost controls, rollout, and rollback around it.</p>
+      <ul class="claim-list">
+        <li><label><input type="checkbox"> States the production cloud gap without apology</label></li>
+        <li><label><input type="checkbox"> Bridges to genuine service and AI-system work</label></li>
+        <li><label><input type="checkbox"> Labels the Bedrock integration as a personal lab</label></li>
+        <li><label><input type="checkbox"> Names production controls beyond the SDK call</label></li>
+      </ul>
+      <p><a href="0012-delivery-is-design.html">Repair lesson: delivery design</a> · <a href="0013-first-cloud-hop.html">Repair lesson: first cloud hop</a></p>
+    </details>
+  </section>
+
+  <h2>Score the circuit</h2>
+  <p>Each answer has four claims. Count one point only when you said the idea before opening the reveal.</p>
+  <table>
+    <thead><tr><th>Score</th><th>What to do now</th></tr></thead>
+    <tbody>
+      <tr><td>20–24</td><td>Stop studying. Repeat the two least fluent answers aloud once.</td></tr>
+      <tr><td>15–19</td><td>Open the linked repair lesson for each answer below three points, then retry cold.</td></tr>
+      <tr><td>0–14</td><td>Do questions 1, 2, 3, and 6 again. They cover the broadest interview ground.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-ask">
+    <p class="callout-title">Ask your teacher</p>
+    <p>Paste your weakest spoken answer here. I can interview you, challenge one vague claim at a time, and help cut it to 60 seconds without inventing experience.</p>
+  </div>
+
+  <h2>Primary sources, only if you miss a boundary</h2>
+  <p>Do not read all of these before the interview. Use the source attached to the answer you missed: <a href="https://arxiv.org/abs/2005.11401">the RAG paper</a>, <a href="https://www.anthropic.com/research/building-effective-agents">Anthropic on workflows and agents</a>, <a href="https://modelcontextprotocol.io/specification/2025-11-25">the MCP specification</a>, <a href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI RMF</a>, <a href="https://neo4j.com/docs/getting-started/graph-database/">Neo4j’s graph model guide</a>, <a href="https://arxiv.org/abs/2309.02427">CoALA on agent memory</a>, or <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html">the Bedrock Converse documentation</a>.</p>
+
+  <footer class="lesson-footer">
+    <p>Keep the <a href="../reference/glossary.html">glossary</a> open only for repair. During the circuit, retrieval effort is the point.</p>
+    <p class="next"><a href="index.html">Back to all lessons</a></p>
+  </footer>
+</main>
+</body>
+</html>
