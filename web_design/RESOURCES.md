@@ -16,6 +16,8 @@
   Rationale, examples, and definitions for text contrast. Use for: separating hierarchy choices from minimum legibility requirements.
 - [System: Material Design 3](https://m3.material.io/)
   A maintained design system with guidance for foundations, components, and patterns. Use for: seeing how principles become reusable rules.
+- [System: GOV.UK Design System](https://design-system.service.gov.uk/)
+  A public, research-backed system with styles, accessible coded components, task patterns, and documented contribution criteria. Use for: distinguishing a component from a pattern and deciding whether an addition has earned system status.
 - [Guidance: Headings — GOV.UK Design System](https://design-system.service.gov.uk/styles/headings/)
   Practical guidance on consistent heading roles, responsive type scales, and the distinction between semantic heading levels and visual balance. Use for: assigning repeatable type roles instead of styling each screen independently.
 - [Explainer: Understanding text spacing — W3C WAI](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing)
@@ -34,6 +36,8 @@
   Recommends building on concepts people already know, applying established behavior consistently, and showing the result of an action. Use for: auditing whether an interface keeps the promise made by its controls.
 - [Book: _The Visual Display of Quantitative Information_ — Edward Tufte](https://www.edwardtufte.com/book/the-visual-display-of-quantitative-information/)
   A demanding treatment of clarity, information density, and visual evidence. Use for: later work on data-rich pages and removing decoration that competes with meaning.
+- [Guidance: Typography, Color, and Layout — Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/)
+  Practical guidance on how type, color, and layout communicate hierarchy and personality while remaining legible, meaningful, and adaptable. Use for: defining or auditing visual-language rules without sacrificing usability.
 
 ## Wisdom (communities)
 
@@ -44,5 +48,5 @@
 
 ## Gaps
 
-- Add a strong primary source on the history and observable traits of common web visual styles before the visual-language module.
+- Add a strong primary source on the history and observable traits of common web visual styles if the course later needs to compare named style movements.
 - Add a moderated critique venue suited to small personal projects after the learner states whether public critique is welcome.

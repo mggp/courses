@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design-system seed checklist</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Living reference</p>
+      <h1>Design-system seed checklist</h1>
+      <p class="lede">A small, evidence-backed set of decisions that keeps a personal project coherent without inventing a platform team.</p>
+    </header>
+    <section class="prose">
+      <h2>Start with the smallest useful system</h2>
+      <dl class="system-checklist">
+        <div><dt>1. Repeated decision</dt><dd>What appears in more than one place, or will be costly to change separately?</dd></div>
+        <div><dt>2. Intent</dt><dd>Name the job, not its pixels: “primary action,” “error message,” “content heading.”</dd></div>
+        <div><dt>3. Rule</dt><dd>State the invariant: one primary action per local context; destructive actions use a semantic danger treatment.</dd></div>
+        <div><dt>4. Contract</dt><dd>Specify visible states, behavior, semantics, keyboard use, and feedback.</dd></div>
+        <div><dt>5. Evidence</dt><dd>Record the user need, accessibility constraint, or observed failure that justifies the rule.</dd></div>
+        <div><dt>6. Exception</dt><dd>Allow it only for a named context. Decide whether it is a one-off, a variant, or a new pattern.</dd></div>
+      </dl>
+      <h2>Classify before you build</h2>
+      <table class="system-table"><thead><tr><th>When you see…</th><th>Capture it as…</th></tr></thead><tbody>
+        <tr><td>A shared meaning such as success, danger, or a spacing step</td><td>Foundation / token</td></tr>
+        <tr><td>A reusable UI part with a stable interface and states</td><td>Component</td></tr>
+        <tr><td>Several parts solving a recurring user task</td><td>Pattern</td></tr>
+        <tr><td>A new requirement that matters only once</td><td>Local decision; do not generalize yet</td></tr>
+      </tbody></table>
+      <h2>Review a proposed addition</h2>
+      <ol class="steps"><li>What user task recurs, and in which contexts?</li><li>Can an existing rule, component, or pattern meet it without concealing a meaningful difference?</li><li>Which accessibility and interaction states must remain true?</li><li>What evidence supports it, and who owns the decision?</li></ol>
+      <p class="critique-line">“This is a local styling exception, not yet a Button variant: it appears once and has no distinct user task or interaction contract. Keep it local until repetition and evidence justify a rule.”</p>
+    </section>
+    <nav class="lesson-nav" aria-label="Course navigation"><a href="../lessons/0007-a-system-is-a-set-of-decisions.html">Lesson 7: design systems</a><a href="glossary.html#design-system">Glossary: design system</a></nav>
+  </main>
+</body>
+</html>

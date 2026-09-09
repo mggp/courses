@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 8: Visual language is observable</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/visual-language-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 8 · about 10 minutes</p>
+      <h1>Visual language is a set of observable rules</h1>
+      <p class="lede">A visual language is not “make it premium” or “use a brutalist style.” It is the repeatable visual decisions that make the same product feel coherent and recognizably itself.</p>
+      <div class="goal"><strong>Your win:</strong> turn a vague visual direction into three testable rules an AI—or your future self—can follow.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="what-changes">
+      <h2 id="what-changes">Keep the task; change the voice</h2>
+      <p>Visual language is the visible voice of a product: how typography, shape, color, surfaces, spacing, imagery, and motion repeatedly work together. It changes how an interface feels without needing to change what the person is trying to do.</p>
+      <p>That distinction matters when directing generated UI. “Make it more editorial” is a taste label. “Use a high-contrast serif for page titles, quiet paper-like surfaces, square-cornered controls, and restrained forest green” is a compact set of rules that can be inspected.</p>
+      <p>Do not let the voice erase the interface. Apple’s guidance treats typography, color, and layout as ways to communicate hierarchy and meaning; it also requires that they remain legible and adaptable across contexts.</p>
+    </section>
+
+    <section class="lab" aria-labelledby="language-lab-title" data-visual-language-lab>
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Evidence lab</p>
+          <h2 id="language-lab-title">Name the rules, not the mood</h2>
+          <p>Both pages sell the same workshop and preserve the same attention order. Select the three visual rules that distinguish their language.</p>
+        </div>
+      </div>
+      <div class="language-stage">
+        <article class="language-sample field-notes">
+          <p class="sample-label">Field notes · workshop</p>
+          <h3>Learn to notice a page’s quiet decisions.</h3>
+          <p>A short, practical session for people who build their own sites.</p>
+          <a class="sample-action" href="#language-rules">Reserve a place</a>
+        </article>
+        <article class="language-sample signal-room">
+          <p class="sample-label">Signal room · workshop</p>
+          <h3>Learn to notice a page’s quiet decisions.</h3>
+          <p>A short, practical session for people who build their own sites.</p>
+          <a class="sample-action" href="#language-rules">Reserve a place</a>
+        </article>
+      </div>
+      <div class="language-rules" id="language-rules">
+        <div class="language-rule"><p><strong>Type:</strong> one uses a high-contrast serif heading; the other uses a tight sans-serif display heading.</p><button type="button" aria-pressed="false" data-language-rule="type">Select rule</button></div>
+        <div class="language-rule"><p><strong>Geometry:</strong> one action is almost square; the other is a fully rounded pill.</p><button type="button" aria-pressed="false" data-language-rule="geometry">Select rule</button></div>
+        <div class="language-rule"><p><strong>Surface:</strong> one is a light, restrained paper surface; the other is a dark field with a bright accent.</p><button type="button" aria-pressed="false" data-language-rule="surface">Select rule</button></div>
+        <div class="language-rule"><p><strong>Copy:</strong> both pages use the same workshop title and the same call to action.</p><button type="button" aria-pressed="false" data-language-rule="copy">Select rule</button></div>
+      </div>
+      <p class="feedback" data-language-feedback aria-live="polite">Inspect both pages before selecting. The task and copy are deliberately held constant.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Write rules at the right resolution</h2>
+      <p>Rules need enough precision to guide a second screen, but not so much that every decision becomes frozen. Start with three to five observable axes:</p>
+      <ol class="steps">
+        <li><strong>Type:</strong> family category, contrast, weight, scale, and tightness or openness.</li>
+        <li><strong>Geometry:</strong> corner radius, border weight, icon treatment, and whether controls feel soft, sharp, or plain.</li>
+        <li><strong>Surface and color:</strong> flat or layered depth, background character, palette restraint, and where the accent is allowed.</li>
+        <li><strong>Density:</strong> compact or generous spacing; large reading areas or many simultaneous controls.</li>
+        <li><strong>Imagery and motion:</strong> documentary or abstract images; quiet or expressive transitions. Use only when they support the task.</li>
+      </ol>
+      <p>A direction becomes useful when you can point to two examples and say whether each rule was followed. That is the bridge from visual language to the system of decisions in <a href="0007-a-system-is-a-set-of-decisions.html">Lesson 7</a>.</p>
+
+      <h2>Protect meaning and access</h2>
+      <p>Color may create continuity and personality, but it cannot be the only signal for state or interactivity. Similarly, typography can set a tone only if people can still read it at their chosen text size. A visual language is successful when its rules reinforce hierarchy and interaction contracts—not when it makes a static screenshot memorable.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“Keep the task flow and hierarchy, but use an editorial visual language: high-contrast serif display type, off-white surfaces, square controls, one restrained forest accent, and generous reading space. Do not use color alone to indicate state.”</p>
+
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps">
+        <li>Pick a page whose purpose and reading order are already clear.</li>
+        <li>Write three rules across type, geometry, surface/color, density, imagery, or motion.</li>
+        <li>Apply the rules to one repeated element and one new section.</li>
+        <li>Check that a heading, primary action, focus state, and error state are still recognizable without relying only on color.</li>
+      </ol>
+      <div class="note">Use the <a href="../reference/visual-language-audit.html">visual-language audit sheet</a>. Send me your three rules and a screenshot or description of the page; I’ll help you make each rule sharper without turning it into a style label.</div>
+
+      <h2>Primary sources</h2>
+      <p>Read Apple’s guidance on <a href="https://developer.apple.com/design/human-interface-guidelines/typography">typography</a>, <a href="https://developer.apple.com/design/human-interface-guidelines/color">color</a>, and <a href="https://developer.apple.com/design/human-interface-guidelines/layout">layout</a>. They show the core tension: these choices communicate hierarchy and personality, while still needing to remain consistent, legible, and adaptable.</p>
+      <p>Ask me to translate a visual reference into rules, or to compare two directions for the same page.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0007-a-system-is-a-set-of-decisions.html">Previous: design systems</a>
+      <a href="../reference/visual-language-audit.html">Reference: visual-language audit</a>
+    </nav>
+  </main>
+</body>
+</html>

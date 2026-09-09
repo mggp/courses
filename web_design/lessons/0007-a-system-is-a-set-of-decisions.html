@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 7: A system is a set of decisions</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/design-system-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 7 · about 10 minutes</p>
+      <h1>A system is a set of decisions</h1>
+      <p class="lede">A component library gives you parts. A design system gives those parts—and the choices around them—a shared reason, behavior, and boundary.</p>
+      <div class="goal"><strong>Your win:</strong> decide whether a repeated UI decision belongs in a foundation, component, pattern, or nowhere yet.</div>
+    </header>
+    <section class="prose" aria-labelledby="system-not-shelf">
+      <h2 id="system-not-shelf">Not a shelf of components</h2>
+      <p>Imagine three familiar buttons that all look polished, but only one signals loading, another changes its wording to “Done” after a save, and the third silently fails. The mismatch is not merely visual. Each button makes a different promise about the same action.</p>
+      <p>A design system makes the shared decision explicit: what a primary action looks like, which states it needs, how it receives focus, and how the outcome is communicated. Code can implement that decision, but code alone is not the system.</p>
+      <div class="system-stack" aria-label="Four layers of a design system"><div><strong>Foundations</strong><span>Shared meanings: type roles, spacing steps, semantic colour.</span></div><div><strong>Components</strong><span>Reusable parts with visual, behavioral, and accessibility contracts.</span></div><div><strong>Patterns</strong><span>Compositions that solve a recurring user task.</span></div><div><strong>Governance</strong><span>Evidence and rules for changing the shared decisions.</span></div></div>
+      <p>Think of this as an API with human consequences. The API is useful because its contract is predictable; design-system contracts are useful because people can predict an interface before they experiment with it.</p>
+    </section>
+    <section class="lab" aria-labelledby="system-lab-title" data-system-lab>
+      <div class="lab-head"><div><p class="kicker">System map lab</p><h2 id="system-lab-title">Put the decision at the right level</h2><p>Classify each decision by the kind of consistency it protects. There is one correct level for each.</p></div></div>
+      <div class="system-questions">
+        <section class="system-question" data-system-question="foundation"><h3>“Danger” always uses a named semantic colour, whether it appears in a button, notice, or form error.</h3><div class="choices"><button class="choice" type="button" aria-pressed="false" data-system-choice="foundation">Foundation</button><button class="choice" type="button" aria-pressed="false" data-system-choice="component">Component</button><button class="choice" type="button" aria-pressed="false" data-system-choice="pattern">Pattern</button><button class="choice" type="button" aria-pressed="false" data-system-choice="governance">Governance</button></div></section>
+        <section class="system-question" data-system-question="component"><h3>The primary Button documents its default, disabled, loading, and focus states, as well as its native semantic element.</h3><div class="choices"><button class="choice" type="button" aria-pressed="false" data-system-choice="foundation">Foundation</button><button class="choice" type="button" aria-pressed="false" data-system-choice="component">Component</button><button class="choice" type="button" aria-pressed="false" data-system-choice="pattern">Pattern</button><button class="choice" type="button" aria-pressed="false" data-system-choice="governance">Governance</button></div></section>
+        <section class="system-question" data-system-question="pattern"><h3>Deleting an item asks for confirmation, names what will be removed, and returns a clear result.</h3><div class="choices"><button class="choice" type="button" aria-pressed="false" data-system-choice="foundation">Foundation</button><button class="choice" type="button" aria-pressed="false" data-system-choice="component">Component</button><button class="choice" type="button" aria-pressed="false" data-system-choice="pattern">Pattern</button><button class="choice" type="button" aria-pressed="false" data-system-choice="governance">Governance</button></div></section>
+        <section class="system-question" data-system-question="governance"><h3>A request for “one more button style” needs a repeated user need, an accessibility check, and an owner before becoming a variant.</h3><div class="choices"><button class="choice" type="button" aria-pressed="false" data-system-choice="foundation">Foundation</button><button class="choice" type="button" aria-pressed="false" data-system-choice="component">Component</button><button class="choice" type="button" aria-pressed="false" data-system-choice="pattern">Pattern</button><button class="choice" type="button" aria-pressed="false" data-system-choice="governance">Governance</button></div></section>
+      </div>
+      <p class="feedback" data-system-feedback aria-live="polite">Choose a level. The feedback will explain the boundary.</p>
+    </section>
+    <section class="prose">
+      <h2>Do not systematize a one-off</h2>
+      <p>For a personal project, start by capturing only decisions that repeat or are expensive to get wrong. A token for danger, a button contract, and a form-error pattern may be enough. A bespoke “violet compact button” used once is an exception until you can name a recurring user need that requires it.</p>
+      <h2>Make an exception earn its abstraction</h2>
+      <p>GOV.UK’s contribution criteria require proposed additions to be useful, unique, usable, consistent, and versatile. Borrow the spirit, not the bureaucracy: before adding a variant, ask whether it solves a repeated need, reuses existing rules where possible, and remains accessible across its real contexts.</p>
+      <h2>Write the critique</h2>
+      <p class="critique-line">“These three save actions share a label but not an outcome contract. Define one Button state model—idle, working, succeeded, failed—then apply it consistently wherever the action saves data.”</p>
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps"><li>Choose a repeated decision: an action, an error, a heading role, or an empty state.</li><li>Write its intent and its observable contract: cues, states, behavior, and feedback.</li><li>Find two instances. Mark any difference that has no different user need.</li><li>Keep a true one-off local; turn a repeated, justified decision into a documented rule.</li></ol>
+      <div class="note">Use the <a href="../reference/design-system-checklist.html">design-system seed checklist</a> and send me one proposed rule plus the exception you decided not to systematize. I’ll challenge the boundary with you.</div>
+      <h2>Primary sources</h2>
+      <p>Study the <a href="https://design-system.service.gov.uk/components/">GOV.UK components</a> and <a href="https://design-system.service.gov.uk/patterns/">patterns</a> pages. Then read its <a href="https://design-system.service.gov.uk/community/contribution-criteria/">contribution criteria</a> to see how a mature system decides what belongs. A system is a way to preserve good decisions, not a licence to make every interface identical.</p>
+      <p>Ask me to review a component, a proposed token, or a screenshot from one of your projects. We can decide whether the problem is a missing rule, an incorrect rule, or an exception that should stay local.</p>
+    </section>
+    <nav class="lesson-nav" aria-label="Course navigation"><a href="0006-repeat-the-relationship.html">Previous: visual rhythm</a><a href="../reference/design-system-checklist.html">Reference: design-system seed</a></nav>
+  </main>
+</body>
+</html>
