@@ -20,6 +20,10 @@
   Practical guidance on consistent heading roles, responsive type scales, and the distinction between semantic heading levels and visual balance. Use for: assigning repeatable type roles instead of styling each screen independently.
 - [Explainer: Understanding text spacing — W3C WAI](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing)
   Explains why interfaces must tolerate user overrides to line, paragraph, letter, and word spacing without losing content or function. Use for: testing typography beyond its default appearance.
+- [Type scale — GOV.UK Design System](https://design-system.service.gov.uk/styles/type-scale/)
+  Documents a type scale whose line heights use 5px multiples to create consistent vertical rhythm. Use for: connecting repeated text measurements to a page-wide reading pattern.
+- [Metrics and keylines — Material Design](https://m1.material.io/layout/metrics-keylines.html)
+  Shows how components, typography, and spacing align to shared baseline grids. Use for: seeing how a spacing system constrains values without making every gap identical.
 - [Guide: Responsive web design basics — web.dev](https://web.dev/articles/responsive-web-design-basics)
   Recommends choosing breakpoints from the needs of the content rather than named devices, starting with a narrow layout and adding structure when space permits. Use for: deciding when a composition should change.
 - [Explainer: Understanding reflow — W3C WAI](https://www.w3.org/WAI/WCAG22/Understanding/reflow)

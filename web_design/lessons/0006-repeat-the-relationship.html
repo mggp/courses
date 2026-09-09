@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 6: Repeat the relationship</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <script src="../assets/rhythm-lab.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="lesson-header">
+      <p class="eyebrow">Lesson 6 · about 10 minutes</p>
+      <h1>Repeat the relationship</h1>
+      <p class="lede">Visual rhythm lets a reader predict structure. It appears when equivalent relationships repeat their spacing, size, or form.</p>
+      <div class="goal"><strong>Your win:</strong> find a break in vertical rhythm and decide whether it carries meaning.</div>
+    </header>
+
+    <section class="prose" aria-labelledby="rhythm-not-uniformity">
+      <h2 id="rhythm-not-uniformity">Rhythm is not uniform spacing</h2>
+      <p>A page needs several gap sizes because it contains several relationships. A title sits close to its summary. One entry sits farther from the next. Rhythm comes from repeating each relationship consistently.</p>
+      <div class="rhythm-rule" aria-label="A three-step rhythm audit">
+        <div><strong>Repeat</strong><span>Find structures that perform the same job.</span></div>
+        <div><strong>Compare</strong><span>Measure the same relationship in each structure.</span></div>
+        <div><strong>Explain</strong><span>Keep an exception only when meaning changes.</span></div>
+      </div>
+      <p>This is close to debugging an invariant. The invariant is not “every gap equals 8px.” It is “equivalent relationships use equivalent treatment.”</p>
+    </section>
+
+    <section class="lab" aria-labelledby="rhythm-lab-title" data-rhythm-lab>
+      <div class="lab-head">
+        <div>
+          <p class="kicker">Rhythm lab</p>
+          <h2 id="rhythm-lab-title">Find the unsupported exception</h2>
+          <p>Scan the release notes before measuring. One repeated relationship changes without a content reason.</p>
+        </div>
+      </div>
+
+      <div class="rhythm-stage">
+        <div class="release-window" data-release-window>
+          <div class="release-bar"><span>FIELD NOTES</span><span>Release log</span></div>
+          <div class="release-list">
+            <article class="release-entry">
+              <p class="release-version">Version 2.4</p>
+              <h3>Faster photo uploads</h3>
+              <span class="gap-measure">8px title to summary</span>
+              <p class="release-summary">Large field photos now upload in the background while you keep writing.</p>
+            </article>
+            <article class="release-entry">
+              <p class="release-version">Version 2.3</p>
+              <h3>Clearer draft status</h3>
+              <span class="gap-measure">8px title to summary</span>
+              <p class="release-summary">Each note now shows when it was last saved and whether changes remain.</p>
+            </article>
+            <article class="release-entry is-break">
+              <p class="release-version">Version 2.2</p>
+              <h3>Export selected observations</h3>
+              <span class="gap-measure">28px title to summary</span>
+              <p class="release-summary">Choose individual observations before creating a CSV file for analysis.</p>
+            </article>
+          </div>
+        </div>
+        <div class="rhythm-actions">
+          <button type="button" data-show-measures>Show gap measurements</button>
+          <button type="button" data-repair-rhythm disabled>Repair the repeated relationship</button>
+        </div>
+      </div>
+
+      <div class="lab-sequence">
+        <section class="lab-step">
+          <h3>1. Compare</h3>
+          <p>Which repeated feature breaks its pattern?</p>
+          <div class="choices">
+            <button class="choice" type="button" aria-pressed="false" data-observation="summary-gap">The title-to-summary gap changes once</button>
+            <button class="choice" type="button" aria-pressed="false" data-observation="entry-gap">The entry-to-entry gap stays constant</button>
+            <button class="choice" type="button" aria-pressed="false" data-observation="version-label">The date label repeats each time</button>
+          </div>
+          <p class="feedback" data-observation-feedback aria-live="polite"></p>
+        </section>
+
+        <section class="lab-step">
+          <h3>2. Explain</h3>
+          <p>What does that exception communicate?</p>
+          <div class="choices">
+            <button class="choice" type="button" aria-pressed="false" data-meaning="transition">It marks a meaningful content transition</button>
+            <button class="choice" type="button" aria-pressed="false" data-meaning="unsupported">It creates an unsupported spacing exception</button>
+            <button class="choice" type="button" aria-pressed="false" data-meaning="readability">It improves the final entry's readability</button>
+          </div>
+          <p class="feedback" data-meaning-feedback aria-live="polite"></p>
+        </section>
+
+        <section class="lab-step">
+          <h3>3. Repair</h3>
+          <p>After diagnosing the exception, use the repair button above. It changes only the title-to-summary gap from 28px to 8px.</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>A scale supplies values; repetition creates rhythm</h2>
+      <p>A spacing scale limits arbitrary choices. It does not tell you which value belongs to which relationship. GOV.UK ties its type-scale line heights to 5px multiples to create a consistent vertical rhythm. Material Design aligns components to an 8dp grid and type to a 4dp baseline grid. Both systems repeat shared measurements, but neither requires every interval to match.</p>
+
+      <h2>Exceptions spend attention</h2>
+      <p>A break in rhythm is useful when the structure changes: a new section begins, a featured item deserves emphasis, or an interruption requires action. If meaning stays the same, the break makes the reader pause for no payoff.</p>
+
+      <h2>Write the critique</h2>
+      <p class="critique-line">“The first two release titles sit 8px from their summaries, but the third uses 28px although its role is unchanged. Restore the 8px gap so equivalent entries repeat the same relationship.”</p>
+
+      <h2>Do this on one of your pages</h2>
+      <ol class="steps">
+        <li>Choose three repeated components, such as cards, rows, or form groups.</li>
+        <li>Name one relationship inside them, such as label to value or title to summary.</li>
+        <li>Measure that relationship in all three instances.</li>
+        <li>For each exception, state what change in meaning it communicates. Remove it if you cannot.</li>
+      </ol>
+      <div class="note">Send me the three measurements and your explanation for any exception. I will challenge the relationship you chose before we record the lesson.</div>
+
+      <h2>Primary source</h2>
+      <p>Read the <a href="https://design-system.service.gov.uk/styles/type-scale/">GOV.UK Design System type scale</a>. Focus on why its line heights share 5px increments. Then use the <a href="../reference/rhythm-checklist.html">rhythm checklist</a> on one of your pages. The <a href="https://www.w3.org/WAI/WCAG22/Understanding/text-spacing">W3C text-spacing guidance</a> adds an important constraint: your layout must survive when a reader overrides text spacing.</p>
+      <p>Ask me if an exception seems meaningful but still looks awkward. We can separate the content decision from its visual treatment.</p>
+    </section>
+
+    <nav class="lesson-nav" aria-label="Course navigation">
+      <a href="0005-a-control-makes-a-promise.html">Previous: interaction contracts</a>
+      <a href="../reference/rhythm-checklist.html">Reference: rhythm</a>
+    </nav>
+  </main>
+</body>
+</html>
