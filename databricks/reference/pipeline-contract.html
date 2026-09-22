@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipeline contract quick reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Section 1</div>
+  <h1>Pipeline contract</h1>
+  <p class="lede">Use this study device to turn a business request into testable inputs and outputs. “Pipeline contract” is a study label, not a Databricks product or an extra exam objective.</p>
+
+  <dl class="contract">
+    <dt>User input</dt>
+    <dd>The request plus required fields, identity, and conversation context.</dd>
+    <dt>Knowledge input</dt>
+    <dd>The facts the system must obtain. Name whether each source is live structured data, governed unstructured content, or an external service.</dd>
+    <dt>Action input</dt>
+    <dd>The parameters and authorization needed when a tool changes an external system.</dd>
+    <dt>Response output</dt>
+    <dd>The exact content, structure, citations, and fallback the user receives.</dd>
+    <dt>Action output</dt>
+    <dd>The state change, identifier, artifact, or confirmation produced by a tool.</dd>
+    <dt>Success check</dt>
+    <dd>An observable criterion such as accuracy, completeness, safety, latency, or cost.</dd>
+  </dl>
+
+  <h2>Fast exam check</h2>
+  <ol>
+    <li>Underline the verbs. “Answer” is a response; “create,” “update,” and “send” are actions.</li>
+    <li>Circle required entities such as <code>account_id</code>, <code>transaction_id</code>, dates, or document types.</li>
+    <li>Separate facts that can live in documents from facts that must be fetched from a live system.</li>
+    <li>State what happens when identity, data, or authorization is missing.</li>
+    <li>Only then choose the model, retrieval method, tools, or Databricks product.</li>
+  </ol>
+
+  <div class="callout">
+    <strong>Current-name alert.</strong> The March 2026 guide uses “Vector Search” and “Mosaic AI Vector Search.” Databricks renamed the product <strong>Databricks AI Search</strong> on June 1, 2026. See the <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/june">release note</a> and the current <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">AI Search documentation</a>.
+  </div>
+
+  <p class="small">Primary source: <a href="https://docs.databricks.com/aws/en/agents/agents-dev-lifecycle">Agent development lifecycle</a>. Databricks says to clarify input types, expected responses, required context, quality criteria, system constraints, and failure handling before building.</p>
+</main>
+</body>
+</html>

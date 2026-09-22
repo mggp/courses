@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 1: Turn a business goal into inputs and outputs</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0001 · About 8 minutes</div>
+  <h1>Turn a business goal into inputs and outputs</h1>
+  <p class="lede">Your first exam move is not choosing a model. It is stating what the system receives, what facts or permissions it needs, and what observable result it must produce.</p>
+
+  <div class="objective">
+    <strong>Guide objective, quoted exactly:</strong><br>
+    Translate business use case goals into a description of the desired inputs and outputs for the AI pipeline.
+  </div>
+
+  <h2>The core idea</h2>
+  <p>Databricks tells builders to clarify the input types, intended responses, required context, quality criteria, production constraints, and failure handling before implementation. That work identifies the data sources and tools the agent needs. <a href="https://docs.databricks.com/aws/en/agents/agents-dev-lifecycle">Official source</a>.</p>
+
+  <p>For exam scenarios, split the requirement into two sides:</p>
+
+  <dl class="contract">
+    <dt>Inputs</dt>
+    <dd>User request, required fields, identity, conversation context, knowledge sources, and authorized tool parameters.</dd>
+    <dt>Outputs</dt>
+    <dd>User-visible response, required format or citations, external action or artifact, and a safe fallback.</dd>
+  </dl>
+
+  <p class="trap">Do not confuse an implementation component with an input or output. “Use an LLM” is not an output. “Use AI Search” is not an input. Those choices come after the contract is clear.</p>
+
+  <h2>Worked example</h2>
+  <div class="scenario">
+    A customer asks, “Can you return my last order?” The application must check the live order, apply the current return policy, create the return when eligible, and provide a shipping label. Otherwise, it must explain why it cannot proceed.
+  </div>
+
+  <p>This mirrors the return workflow in Databricks' current agent design documentation. The documented flow looks up the order, consults the policy, checks eligibility, performs the return, generates a label, and responds. <a href="https://docs.databricks.com/aws/en/agents/agent-system-design-patterns">Official source</a>.</p>
+
+  <dl class="contract">
+    <dt>User input</dt>
+    <dd>Return request and authenticated customer identity. Ask for an order identifier if “last order” cannot be resolved safely.</dd>
+    <dt>Knowledge input</dt>
+    <dd>Live order record plus the current return-policy document.</dd>
+    <dt>Action input</dt>
+    <dd>Eligible order identifier and authority to initiate a return.</dd>
+    <dt>Response output</dt>
+    <dd>Eligibility result and explanation. Include the policy basis when the interface requires it.</dd>
+    <dt>Action output</dt>
+    <dd>Created return, return identifier, and shipping label when eligible.</dd>
+    <dt>Fallback</dt>
+    <dd>Request missing information, refuse an unauthorized action, or explain that the return is ineligible.</dd>
+  </dl>
+
+  <h2>Why this changes the architecture</h2>
+  <p>A fixed, well-defined sequence can use a deterministic chain. When the system must decide which tools to call for varied requests, a single-agent system can make that choice dynamically. Databricks recommends choosing the simplest viable design and adding complexity only when the requirements need it. <a href="https://docs.databricks.com/aws/en/agents/agent-system-design-patterns">Official source</a>.</p>
+
+  <h2>Retrieval practice</h2>
+  <div class="scenario">
+    An employee asks, “Can I take five days off next month?” The assistant must use the employee's live leave balance and the company's current leave-policy documents. It cannot approve leave. It should answer with remaining balance, whether the request fits policy, and what the employee must do next.
+  </div>
+
+  <p>Write the contract from memory. Keep products and implementation details out of it.</p>
+  <textarea aria-label="Write your pipeline contract" placeholder="User input:
+Knowledge input:
+Action input:
+Response output:
+Action output:
+Fallback:"></textarea>
+
+  <details>
+    <summary>Check a model answer</summary>
+    <dl class="contract">
+      <dt>User input</dt>
+      <dd>Authenticated employee identity, requested dates, and requested duration.</dd>
+      <dt>Knowledge input</dt>
+      <dd>Live leave balance and current leave-policy documents.</dd>
+      <dt>Action input</dt>
+      <dd>None. The scenario does not authorize approval or any other state change.</dd>
+      <dt>Response output</dt>
+      <dd>Remaining balance, policy fit, and the next step for submitting the request.</dd>
+      <dt>Action output</dt>
+      <dd>None.</dd>
+      <dt>Fallback</dt>
+      <dd>Ask for missing dates or explain that balance or policy information could not be retrieved.</dd>
+    </dl>
+  </details>
+
+  <div class="callout">
+    <strong>Self-check.</strong> You have the skill when you can explain why the leave balance is a live data input, the policy is a knowledge input, and approval is absent from the output contract.
+  </div>
+
+  <h2>Keep this</h2>
+  <p>Use the printable <a href="../reference/pipeline-contract.html">pipeline contract quick reference</a> on later scenario questions.</p>
+
+  <h2>Primary reading</h2>
+  <p>Read <a href="https://docs.databricks.com/aws/en/agents/agents-dev-lifecycle">Agent development lifecycle</a>, especially “Understand use case, scope, and success metrics.” It is the clearest current official source for this objective.</p>
+
+  <p class="small">Ask your teacher about any distinction that still feels slippery. A useful next step is to paste your contract from the exercise so it can be checked before Lesson 2.</p>
+</main>
+</body>
+</html>
