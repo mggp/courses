@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 2: Genie for governed, stateful analytics</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0002 · About 18 minutes</div>
+  <h1>Genie for governed, stateful analytics</h1>
+  <p class="lede">Use a Genie Agent when another agent or application needs a specialist that can turn business-language questions into SQL over governed structured data. Keep the same conversation ID for follow-ups. Keep business state somewhere else.</p>
+
+  <div class="objective">
+    <strong>Guide objective, quoted exactly:</strong><br>
+    Enable multi-agent systems to leverage Genie Spaces or conversational API to retrieve data.
+  </div>
+
+  <div class="callout">
+    <strong>Current-name alert.</strong> Databricks renamed Genie Spaces to <strong>Genie Agents</strong>. The current Chat mode REST paths still contain <code>/genie/spaces/</code>, so exam wording, UI wording, and endpoint wording do not quite match. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official concepts</a>; <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">official API reference</a>.
+  </div>
+
+  <h2>The mental model</h2>
+  <p>A Genie Agent is a domain-specific analytics specialist. Authors configure datasets, example SQL, instructions, and semantic definitions. Genie uses those assets with Unity Catalog metadata to turn a natural-language question into SQL and, when possible, return the SQL, a result table, and a visualization. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official source</a>.</p>
+
+  <dl class="contract">
+    <dt>Meaning</dt>
+    <dd>The knowledge store, instructions, example SQL, SQL functions, and trusted assets teach Genie the organization's terminology and approved analytical logic. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official source</a>.</dd>
+    <dt>Data</dt>
+    <dd>The agent works with Unity Catalog tables, views, metric views, and related structured objects. Chat mode does not answer from PDFs or Word files. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts#what-data-can-i-use">Official source</a>.</dd>
+    <dt>Compute</dt>
+    <dd>A pro or serverless SQL warehouse runs the generated SQL. The author who configures the warehouse supplies the embedded compute credentials. <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#technical-requirements-and-limits">Official source</a>.</dd>
+    <dt>Governance</dt>
+    <dd>For ordinary end-user access, Unity Catalog evaluates data access as the end user's identity. Row filters and column masks therefore remain enforceable per user. <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#share-a-genie-agent">Official source</a>.</dd>
+    <dt>Conversation</dt>
+    <dd>The Conversation API stores a thread of messages under a <code>conversation_id</code>. A follow-up sent to that ID uses the messages already in the conversation. <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">Official API reference</a>.</dd>
+  </dl>
+
+  <p class="trap">The table list in the Genie Agent is context, not a security perimeter. Current documentation says Genie can query tables outside that list when the caller has Unity Catalog access and the prompt, instructions, or metadata lead it there. Use Unity Catalog privileges, row filters, and column masks as the boundary. <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#manage-data-objects">Official source</a>.</p>
+
+  <h2>What “stateful” means here</h2>
+  <p>The state is the conversation history that Genie uses to resolve a follow-up such as “Now split that by region.” It is not a transaction record, workflow checkpoint, customer profile, or durable application memory. The first sentence is documented API behavior; the second is the architectural boundary implied by the API's message-thread model and Databricks' advice to start a new conversation for each session. <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">Message behavior</a>; <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">session guidance</a>.</p>
+
+  <div class="scenario">
+    <strong>Correct reuse.</strong> “Which five stores had the most returns last quarter?” followed by “Only show Spain” belongs in one conversation because the second question depends on the first.
+  </div>
+
+  <div class="scenario">
+    <strong>Start fresh.</strong> A different user begins a new analytical task. Create a new conversation. Databricks warns that reusing threads across sessions can introduce unintended context and reduce accuracy. <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">Official source</a>.
+  </div>
+
+  <h2>The Chat mode API lifecycle</h2>
+  <table>
+    <thead>
+      <tr><th>Step</th><th>Call</th><th>What to retain</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1. Start</td>
+        <td><code>POST /api/2.0/genie/spaces/{space_id}/start-conversation</code></td>
+        <td><code>conversation_id</code> and <code>message_id</code>. <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">Official API reference</a>.</td>
+      </tr>
+      <tr>
+        <td>2. Wait</td>
+        <td><code>GET .../messages/{message_id}</code></td>
+        <td>Poll until <code>COMPLETED</code>, <code>FAILED</code>, or <code>CANCELLED</code>. Databricks recommends polling every 1 to 5 seconds with backoff and a practical timeout. <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">Official source</a>.</td>
+      </tr>
+      <tr>
+        <td>3. Read</td>
+        <td>Inspect message attachments</td>
+        <td>A response can carry text, generated SQL, a visualization, and query-result metadata. <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">Official API reference</a>.</td>
+      </tr>
+      <tr>
+        <td>4. Fetch rows</td>
+        <td><code>GET .../attachments/{attachment_id}/query-result</code></td>
+        <td>Use this when the message has a query attachment and you need the SQL result payload. <a href="https://docs.databricks.com/api/genie/v1/genie-get-message-attachment-query-result">Official API reference</a>.</td>
+      </tr>
+      <tr>
+        <td>5. Continue</td>
+        <td><code>POST .../conversations/{conversation_id}/messages</code></td>
+        <td>Reuse the same <code>conversation_id</code> only while the follow-up belongs to that session. <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">Official API reference</a>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>The REST API is asynchronous. The Databricks SDK's <code>start_conversation_and_wait</code> and <code>create_message_and_wait</code> helpers hide the polling loop, but the underlying message lifecycle still exists. Databricks uses these helpers in its official Apps example. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie#environment-variables">Official example</a>.</p>
+
+  <h2>Run this in a Databricks notebook</h2>
+  <p>Use a Genie Agent you can run, replace the ID, and ask a question that matches its domain. In a Databricks notebook, <code>WorkspaceClient()</code> uses the notebook's available Databricks authentication. The two SDK calls below start one conversation and then preserve its context for a follow-up. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie#environment-variables">Official SDK pattern</a>.</p>
+
+  <pre><code>from databricks.sdk import WorkspaceClient
+
+SPACE_ID = "replace-with-your-genie-agent-id"
+w = WorkspaceClient()
+
+first = w.genie.start_conversation_and_wait(
+    space_id=SPACE_ID,
+    content="Which five products had the most returns last quarter?",
+)
+
+print("conversation:", first.conversation_id)
+for attachment in first.attachments or []:
+    if attachment.text and attachment.text.content:
+        print("ANSWER:", attachment.text.content)
+    if attachment.query and attachment.query.query:
+        print("SQL:\n", attachment.query.query)
+
+follow_up = w.genie.create_message_and_wait(
+    space_id=SPACE_ID,
+    conversation_id=first.conversation_id,
+    content="Restrict that result to Spain and keep the same ranking.",
+)
+
+for attachment in follow_up.attachments or []:
+    if attachment.text and attachment.text.content:
+        print("FOLLOW-UP:", attachment.text.content)
+    if attachment.query and attachment.query.query:
+        print("FOLLOW-UP SQL:\n", attachment.query.query)</code></pre>
+
+  <div class="callout">
+    <strong>Learning check.</strong> Inspect the second SQL query. It should reflect both the original measure and the new country restriction. Then start a separate conversation with the follow-up sentence alone. Compare the result. That contrast makes conversation state visible.
+  </div>
+
+  <h2>Identity is part of the architecture</h2>
+  <p>A direct user call and a Databricks App call need not run as the same identity. A Databricks App has its own service principal for app authorization. It can instead use on-behalf-of-user authorization when the result must respect each caller's Unity Catalog permissions, including row filters and column masks. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Official source</a>.</p>
+
+  <p>When you add a Genie Agent as an App resource, Databricks grants the app service principal permission on that agent, and the service principal also needs privileges on the underlying data. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie">Official source</a>. Therefore, “the Genie Agent is governed” is incomplete. You must name the caller identity whose privileges Unity Catalog will enforce.</p>
+
+  <h2>Where Genie fits in a multi-agent system</h2>
+  <p>A multi-agent orchestrator treats specialist agents as tools. Current Databricks guidance uses a Genie Agent for structured-data analysis and a Knowledge Assistant or other agent for document or domain work. In the custom Databricks Apps template, Genie connects through the built-in Databricks MCP server and requires the Genie Agent ID plus <code>CAN_RUN</code>. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps">Official source</a>.</p>
+
+  <table>
+    <thead>
+      <tr><th>Need</th><th>Best fit</th><th>Reason</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Natural-language analysis over governed tables and metrics</td><td>Genie Agent</td><td>Its curated semantic context is designed for business-language-to-SQL questions. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official source</a>.</td></tr>
+      <tr><td>Structured-data follow-ups in your own UI</td><td>Conversation API</td><td>The API exposes conversation and message IDs plus SQL and result attachments. <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">Official API reference</a>.</td></tr>
+      <tr><td>Structured analytics plus document retrieval or another specialist</td><td>Supervisor Agent first</td><td>Databricks recommends trying the managed supervisor before writing a custom orchestrator. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps#try-agent-supervisor-first">Official source</a>.</td></tr>
+      <tr><td>Custom routing or orchestration that Supervisor Agent does not support</td><td>Custom multi-agent app</td><td>This is the documented reason to use the Databricks Apps orchestrator path. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps#try-agent-supervisor-first">Official source</a>.</td></tr>
+      <tr><td>One exact, predetermined query</td><td>Direct SQL</td><td>This is a practical design inference, not a published Databricks decision rule. If natural-language interpretation and follow-up context add no value, Genie adds uncertainty and latency.</td></tr>
+      <tr><td>Durable workflow or business state</td><td>A persistent datastore</td><td>The Conversation API documents message-thread context, not transactional application storage. Treating it as a system of record would exceed its documented role.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Common mistakes</h2>
+  <ol>
+    <li><strong>Calling every message “stateless.”</strong> A follow-up sent with the same <code>conversation_id</code> uses prior messages. <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">Official API reference</a>.</li>
+    <li><strong>Calling the conversation a memory database.</strong> It is session context. Databricks advises one new conversation per session. <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">Official source</a>.</li>
+    <li><strong>Trusting the configured table list as access control.</strong> Genie can reach other tables when Unity Catalog permits it. <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#manage-data-objects">Official source</a>.</li>
+    <li><strong>Ignoring the execution identity.</strong> A user token and an app service principal can see different data. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Official source</a>.</li>
+    <li><strong>Reading only the text attachment.</strong> Applications that need evidence should also retain or display the generated SQL and query results. The API represents these as separate response attachments. <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">Official API reference</a>.</li>
+    <li><strong>Sending documents to Chat mode.</strong> Chat mode is for structured data. Use an appropriate document-capable agent and orchestrate it with Genie when the question spans both. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts#what-data-can-i-use">Official source</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps">multi-agent pattern</a>.</li>
+  </ol>
+
+  <h2>Retrieval practice</h2>
+  <div class="scenario">
+    A support assistant answers policy questions from manuals and account questions from governed billing tables. A user asks, “Why did my invoice rise?” and then, “Compare it with the same month last year.” Different regions must see only their own accounts.
+  </div>
+  <p>Without looking back, write down the specialist, the routing choice, the state identifier to preserve, and the security identity requirement.</p>
+  <textarea aria-label="Write the multi-agent design" placeholder="Structured-data specialist:
+Document specialist:
+Routing:
+Conversation state:
+Authorization:"></textarea>
+
+  <details>
+    <summary>Check a model answer</summary>
+    <p>Route billing analysis to a Genie Agent and policy-document questions to a document-capable specialist. A Supervisor Agent is the first managed choice for coordinating them; use a custom Databricks App if the routing requirements exceed it. Preserve the Genie <code>conversation_id</code> for the year-over-year follow-up. Use on-behalf-of-user authorization, and enforce regional visibility with Unity Catalog privileges or row filters. Do not use the conversation thread as the billing system of record. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps">Orchestration source</a>; <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">state source</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">authorization source</a>.</p>
+  </details>
+
+  <h2>Keep this</h2>
+  <p>Use the printable <a href="../reference/genie-agent-conversation-api.html">Genie Agent and Conversation API quick reference</a> when working through scenarios.</p>
+
+  <h2>Primary reading</h2>
+  <p>Read <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Genie Agents concepts</a>, then <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api">Use the Genie Agents API</a>. The first explains the governed semantic specialist; the second explains the programmatic lifecycle.</p>
+
+  <p class="small">Ask your teacher about any distinction that still feels slippery. A useful next step is to paste your retrieval-practice answer so it can be checked against the exam objective.</p>
+</main>
+</body>
+</html>

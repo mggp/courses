@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guardrails versus observability: quick reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Exam scenarios</div>
+  <h1>Guardrails versus observability</h1>
+  <p class="lede">Need to prevent this call or response? Use a service policy. Need to explain an agent run or measure quality? Use MLflow traces and scorers. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/">Policy source</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">observability source</a>.</p>
+  <table>
+    <thead><tr><th>Need</th><th>Mechanism</th></tr></thead>
+    <tbody>
+      <tr><td>Who can invoke a Model Service?</td><td>Unity Catalog <code>EXECUTE</code> privilege. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#how-service-policies-complement-unity-catalog-grants">Source</a>.</td></tr>
+      <tr><td>Inspect or block a prompt before model invocation?</td><td>Service policy, ON CALL. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">Source</a>.</td></tr>
+      <tr><td>Inspect or block a model reply before delivery?</td><td>Service policy, ON RESULT. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">Source</a>.</td></tr>
+      <tr><td>Find an agent's slow or wrong step?</td><td>MLflow trace and child spans. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Source</a>.</td></tr>
+      <tr><td>Measure live answer quality?</td><td>MLflow production monitoring, with scorers on sampled traces. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/production-monitoring">Source</a>.</td></tr>
+      <tr><td>Track gateway requests, tokens, and latency?</td><td><code>system.ai_gateway.usage</code>. <a href="https://docs.databricks.com/aws/en/ai-gateway/observability">Source</a>.</td></tr>
+      <tr><td>Inspect model-service request and response payloads?</td><td>Inference tables. <a href="https://docs.databricks.com/aws/en/ai-gateway/observability#inspect-requests-and-responses">Source</a>.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Policy result.</strong> ALLOW proceeds. DENY blocks but returns an HTTP 200 assistant turn and a <code>databricks_service_policy</code> reason. ASK pauses for approval. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#policy-decisions">Source</a>.</div>
+  <p><strong>Availability and scope.</strong> Service policies are beta and need the account preview. They attach to Model Services, Model Provider Services, and MCP Services, not Agent Services. Log mode observes a would-be decision without blocking. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#limitations">Scope</a>; <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#fail-closed-behavior">Log mode</a>.</p>
+  <p><a href="../lessons/0003-guardrails-versus-observability.html">Return to lesson 0003</a>.</p>
+</main>
+</body>
+</html>

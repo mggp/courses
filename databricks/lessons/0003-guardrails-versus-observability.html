@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 3: Guardrails versus observability</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0003 · About 15 minutes</div>
+  <h1>Guardrails versus observability</h1>
+  <p class="lede">A service policy makes a decision while a governed AI-service interaction is in flight. MLflow Tracing records an agent's execution so you can inspect it and measure quality. In an exam scenario, ask whether the requirement is to stop this interaction now or learn what happened. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/">Policy source</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">tracing source</a>.</p>
+
+  <div class="objective">
+    <strong>Exam connection.</strong> The <a href="../references/exam-guide.md">March 18, 2026 guide</a> asks you to implement LLM guardrails, select techniques against malicious inputs, evaluate agent performance with MLflow scoring and tracing, and monitor live endpoints. This lesson uses current Databricks product names for those objectives.
+  </div>
+
+  <h2>The distinction</h2>
+  <table>
+    <thead><tr><th>Question</th><th>Service policy</th><th>MLflow Tracing</th></tr></thead>
+    <tbody>
+      <tr><td>Job</td><td>Govern the content of a Model Service or MCP Service interaction; return ALLOW, DENY, or ASK. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/">Source</a>.</td><td>Record inputs, outputs, intermediate steps, latency, and errors as traces and spans. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Source</a>.</td></tr>
+      <tr><td>When</td><td>ON CALL before the service runs, and ON RESULT after it responds but before the caller receives the result. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">Source</a>.</td><td>During instrumented execution; inspect or score the captured traces afterward. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Tracing</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/production-monitoring">production scoring</a>.</td></tr>
+      <tr><td>Scope</td><td>Attached to a Unity Catalog Model Service, Model Provider Service, or MCP Service. Agent Services are not supported in the current beta. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#limitations">Source</a>.</td><td>Instrumented agent or app execution, including LLM, retrieval, and tool spans. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How a governed call proceeds</h2>
+  <p>Unity Catalog privileges first determine whether the principal can call the service. An attached service policy then inspects the request at ON CALL. If it allows the call, the service runs. The policy can inspect the result at ON RESULT before the caller sees it. A DENY stops the interaction at either point. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#how-service-policies-complement-unity-catalog-grants">Grants and policies</a>; <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">evaluation points</a>.</p>
+  <p>A policy DENY returns an HTTP 200 assistant turn with a top-level <code>databricks_service_policy</code> object and a block reason. A successful HTTP status therefore does not prove that the model answered. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#policy-decisions">Source</a>.</p>
+  <p>Databricks provides built-in policies for unsafe content, jailbreak attempts, hallucinated responses, and sensitive-data detection. A custom policy is a Unity Catalog SQL function over an interaction event. Built-in model-backed checks can make non-deterministic judgments; the sensitive-data detector is pattern-based and can redact matched values on model services. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#built-in-service-policies">Built-in policies</a>; <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/create-service-policy#step-1-write-the-policy-function">custom functions</a>.</p>
+  <div class="callout"><strong>Availability.</strong> Service policies are beta and require an account admin to enable the Unity Gateway beta preview. A policy in Log mode records the decision it would make but does not block. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/">Source</a>.</div>
+
+  <h2>Where tracing fits</h2>
+  <p>An MLflow trace represents one complete agent execution. Child spans can show the retriever lookup, model call, and tool invocation, with their inputs, outputs, timing, and errors. Tracing gives you evidence to debug an answer; it does not return a service-policy decision. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Source</a>.</p>
+  <p>For continuous quality measurement, MLflow production monitoring runs built-in or custom scorers on a configurable sample of incoming traces and attaches feedback to evaluated traces. Instrumentation and scorers are separate setup steps. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/production-monitoring">Source</a>.</p>
+  <p>For endpoint request volume, token use, or latency across Unity Gateway services, use <code>system.ai_gateway.usage</code>. For model-service request and response payloads, enable inference tables. These records answer different questions from an application's multi-step MLflow trace. <a href="https://docs.databricks.com/aws/en/ai-gateway/observability">Source</a>.</p>
+
+  <h2>Choose the mechanism</h2>
+  <table>
+    <thead><tr><th>Requirement</th><th>Pick</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Keep unauthorized principals away from a model service</td><td>Unity Catalog privileges</td><td><code>EXECUTE</code> gates who can call it. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#how-service-policies-complement-unity-catalog-grants">Source</a>.</td></tr>
+      <tr><td>Block a prompt with sensitive data before model invocation</td><td>ON CALL service policy</td><td>It evaluates the request before the service runs. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">Source</a>.</td></tr>
+      <tr><td>Withhold a model response containing unsafe content</td><td>ON RESULT service policy</td><td>It evaluates the result before delivery. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#evaluation-points">Source</a>.</td></tr>
+      <tr><td>Find which retrieval step caused a poor answer</td><td>MLflow Tracing</td><td>Spans expose intermediate operations. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Source</a>.</td></tr>
+      <tr><td>Track answer quality over live traffic</td><td>MLflow production monitoring</td><td>Scheduled scorers assess sampled production traces. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/production-monitoring">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Common traps</h2>
+  <ol>
+    <li><strong>Using a trace as a blocking guardrail.</strong> A trace records execution; a service policy returns the runtime decision. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Tracing</a>; <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#policy-decisions">policy</a>.</li>
+    <li><strong>Using a service policy in place of access control.</strong> The principal still needs Unity Catalog privileges. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#how-service-policies-complement-unity-catalog-grants">Source</a>.</li>
+    <li><strong>Assuming the protected model service logs every blocked request.</strong> ON CALL DENY means the model is never invoked, so its inference table may have no row for the block. The evaluator service's inference table can record model-backed verdicts when enabled. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/create-service-policy#debug-and-audit-a-policy-decision">Source</a>.</li>
+    <li><strong>Treating Log mode as enforcement.</strong> It records a would-be DENY and lets the request proceed. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#fail-closed-behavior">Source</a>.</li>
+    <li><strong>Assuming built-in checks see the whole conversation.</strong> By default they inspect one extracted message; model-service input policies can inspect a configured window of recent turns. <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#what-the-evaluator-receives">Source</a>.</li>
+  </ol>
+
+  <h2>Run a trace in a Databricks notebook</h2>
+  <p>Replace the experiment path with one you can create. This function needs no model endpoint. It shows what tracing records, without claiming to test a service policy. The decorator and experiment workflow follow the <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/observe-with-traces/ui-traces">trace UI guide</a> and <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/app-instrumentation/manual-tracing/fluent-apis">manual tracing guide</a>.</p>
+  <pre><code>import mlflow
+
+mlflow.set_tracking_uri("databricks")
+mlflow.set_experiment("/Users/&lt;your-email&gt;/guardrails-vs-tracing")
+
+@mlflow.trace
+def reply(prompt: str) -&gt; str:
+    return f"Draft answer for: {prompt}"
+
+reply("Tell me about Project Aurora")</code></pre>
+  <p>Open your experiment's <strong>Traces</strong> tab and inspect the input and output. The phrase appears in a trace because this code only records the function call. To see enforcement in a workspace with the beta enabled, follow the official <a href="https://docs.databricks.com/aws/en/ai-gateway/moderate-tutorial">model-service guardrail tutorial</a>, which attaches a custom ON CALL policy and verifies a blocked prompt in the playground. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/observe-with-traces/ui-traces">Trace UI source</a>.</p>
+
+  <h2>Retrieve it from memory</h2>
+  <div class="scenario">An agent may call a governed LLM. The security team must prevent prompts containing a confidential codename from reaching the model. The quality team wants to investigate whether slow retrieval caused weak answers last week. Name the control for each need, where it acts, and one record each team should inspect.</div>
+  <textarea aria-label="Answer the guardrail and observability scenario" placeholder="Security control and point of enforcement; quality tool and evidence"></textarea>
+  <details>
+    <summary>Check your answer</summary>
+    <p>Attach a custom ON CALL service policy to the Model Service to deny the codename before invocation; the caller receives the block reason in <code>databricks_service_policy</code>. Instrument the agent with MLflow Tracing and inspect its retrieval span for timing and intermediate output. For ongoing quality scores, add production monitoring scorers to sampled traces. <a href="https://docs.databricks.com/aws/en/ai-gateway/moderate-tutorial">Policy example</a>; <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/#policy-decisions">block result</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">traces and scorers</a>.</p>
+  </details>
+
+  <h2>Keep this</h2>
+  <p>Use the printable <a href="../reference/guardrails-versus-observability.html">guardrails versus observability quick reference</a> for scenario practice.</p>
+  <p>For a governed agent integration example, revisit <a href="0002-genie-governed-stateful-analytics.html">lesson 0002 on Genie</a>.</p>
+  <h2>Primary reading</h2>
+  <p>Read <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/">Service policies for AI securables</a> for the enforcement model, then <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts">Core concepts for agent observability</a> for traces, scorers, and monitoring.</p>
+  <p class="small">Ask your teacher to check your scenario answer if either choice still feels uncertain.</p>
+</main>
+</body>
+</html>

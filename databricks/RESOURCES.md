@@ -16,6 +16,26 @@
   Primary evidence that Vector Search was renamed Databricks AI Search on June 1, 2026.
 - [Databricks Academy](https://customer-academy.databricks.com/learn)
   Sign-in portal. Search for the four self-paced course titles named in the exam guide and for “Generative AI Engineering with Databricks.”
+- [Genie Agents concepts](https://docs.databricks.com/aws/en/genie-agents/concepts)
+  Current terminology, response generation, semantic context, supported structured data, and the split between compute identity and data identity. Use for Genie Agent architecture and governance questions.
+- [Use the Genie Agents API](https://docs.databricks.com/aws/en/genie-agents/conversation-api)
+  Current API guidance, including Chat mode versus Agent mode, polling, session boundaries, authentication, and conversation cleanup. Use for integration and lifecycle questions.
+- [Genie API reference](https://docs.databricks.com/api/genie/v1/genie-start-conversation)
+  Exact Chat mode endpoints, message statuses, response attachments, and identifiers. Use when code or a scenario depends on API mechanics.
+- [Build a multi-agent system on Databricks Apps](https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps)
+  Current custom-orchestrator pattern in which a Genie Agent is a structured-data subagent reached through the built-in Databricks MCP server. Use for managed-versus-custom orchestration decisions.
+- [Configure authorization in a Databricks app](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth)
+  Official distinction between app authorization and on-behalf-of-user authorization. Use when a Genie integration must preserve each caller's Unity Catalog policies.
+- [Service policies for AI securables](https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/)
+  Current service-policy scope, enforcement phases, built-in guardrails, decisions, and beta limits. Use for runtime guardrail questions.
+- [Create and attach a service policy](https://docs.databricks.com/aws/en/data-governance/unity-catalog/service-policies/create-service-policy)
+  Policy-function shape, permissions, attachment workflow, and verification. Use for implementation questions.
+- [Tracing overview](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview)
+  What MLflow Tracing records and how traces support debugging and monitoring.
+- [Core concepts for agent observability](https://docs.databricks.com/aws/en/mlflow3/genai/concepts/core-concepts)
+  Distinguishes traces and spans from scorers, evaluation runs, and production monitoring.
+- [Unity Gateway observability](https://docs.databricks.com/aws/en/ai-gateway/observability)
+  Distinguishes gateway usage tables and inference tables from application-level MLflow traces.
 
 ## Gaps
 

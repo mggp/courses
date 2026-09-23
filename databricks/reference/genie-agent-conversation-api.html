@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Genie Agent and Conversation API quick reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Section 3</div>
+  <h1>Genie Agent and Conversation API</h1>
+  <p class="lede">A Genie Agent supplies governed analytical meaning. The Conversation API supplies a stateful message thread. A multi-agent orchestrator decides when to call that specialist.</p>
+
+  <div class="callout">
+    <strong>Name mapping.</strong> “Genie Space” in the March 2026 guide means <strong>Genie Agent</strong> in current documentation. Chat mode endpoints still use <code>/genie/spaces/</code>. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official concepts</a>; <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">official API reference</a>.
+  </div>
+
+  <dl class="contract">
+    <dt>Use Genie for</dt>
+    <dd>Natural-language questions over structured Unity Catalog data, with curated business semantics and generated SQL. <a href="https://docs.databricks.com/aws/en/genie-agents/concepts">Official source</a>.</dd>
+    <dt>Keep state with</dt>
+    <dd><code>conversation_id</code>. A follow-up in the same conversation uses previous messages. <a href="https://docs.databricks.com/api/genie/v1/genie-create-conversation-message">Official API reference</a>.</dd>
+    <dt>Start fresh when</dt>
+    <dd>A new user session or unrelated analytical task begins. Cross-session reuse can leak irrelevant context into the answer. <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">Official source</a>.</dd>
+    <dt>Govern with</dt>
+    <dd>Genie Agent ACLs plus Unity Catalog privileges, row filters, and column masks. The configured data list is not an access boundary. <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#share-a-genie-agent">Sharing source</a>; <a href="https://docs.databricks.com/aws/en/genie-agents/set-up#manage-data-objects">data-list warning</a>.</dd>
+    <dt>Store elsewhere</dt>
+    <dd>Workflow checkpoints, transactional state, user profiles, and durable application memory. Conversation history has a documented session role, not a system-of-record role.</dd>
+  </dl>
+
+  <h2>Five-call lifecycle</h2>
+  <ol>
+    <li>Start with <code>POST /spaces/{space_id}/start-conversation</code>.</li>
+    <li>Keep <code>conversation_id</code> and <code>message_id</code>.</li>
+    <li>Poll the message until <code>COMPLETED</code>, <code>FAILED</code>, or <code>CANCELLED</code>.</li>
+    <li>Read text, query, visualization, and result attachments as needed.</li>
+    <li>Send a true follow-up to <code>/conversations/{conversation_id}/messages</code>.</li>
+  </ol>
+  <p class="small">Exact endpoints and schemas: <a href="https://docs.databricks.com/api/genie/v1/genie-start-conversation">Genie API reference</a>. Polling guidance: <a href="https://docs.databricks.com/aws/en/genie-agents/conversation-api#best-practices-for-using-the-genie-api">Use the Genie Agents API</a>.</p>
+
+  <h2>Exam decision table</h2>
+  <table>
+    <thead><tr><th>Scenario clue</th><th>Choose</th></tr></thead>
+    <tbody>
+      <tr><td>Business language, governed tables, generated SQL</td><td>Genie Agent</td></tr>
+      <tr><td>“Now filter that,” “compare those,” “break it down”</td><td>Same <code>conversation_id</code></td></tr>
+      <tr><td>Unrelated session or another user</td><td>New conversation</td></tr>
+      <tr><td>Structured data plus manuals or policies</td><td>Genie plus a document specialist under an orchestrator</td></tr>
+      <tr><td>Managed coordination is sufficient</td><td>Supervisor Agent</td></tr>
+      <tr><td>Custom routing beyond managed coordination</td><td>Custom multi-agent Databricks App</td></tr>
+      <tr><td>Durable intermediate or business state</td><td>Persistent datastore, not conversation history</td></tr>
+    </tbody>
+  </table>
+  <p class="small">Multi-agent choices: <a href="https://docs.databricks.com/aws/en/agents/custom-agents/multi-agent-apps">official multi-agent guidance</a>.</p>
+
+  <h2>Security question to ask first</h2>
+  <p><strong>Whose identity calls Genie?</strong> Direct end-user access can enforce that user's Unity Catalog permissions. A Databricks App can call as its service principal or use on-behalf-of-user authorization. The answer determines which rows and columns the caller can receive. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Official source</a>.</p>
+
+  <h2>Fast trap check</h2>
+  <ul>
+    <li>A configured table list improves context. It does not replace Unity Catalog authorization.</li>
+    <li>A <code>conversation_id</code> preserves analytical context. It does not become durable application memory.</li>
+    <li>A completed response may contain SQL and result attachments. Do not assume the text summary is the only output.</li>
+    <li>Chat mode handles structured data. Route document questions to a suitable document agent.</li>
+    <li>The SDK's <code>..._and_wait</code> helpers hide polling. The REST API remains asynchronous.</li>
+  </ul>
+</main>
+</body>
+</html>
