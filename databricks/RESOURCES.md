@@ -2,7 +2,7 @@
 
 ## Knowledge
 
-- [Exam guide: March 18, 2026](references/Gen-AI-Guide.pdf)
+- [Exam guide: March 18, 2026](references/exam-guide.md)
   The controlling source for exam scope. Use it to decide what belongs in the course, not as authority for current product behavior after its publication date.
 - [Agent development lifecycle](https://docs.databricks.com/aws/en/agents/agents-dev-lifecycle)
   Current Databricks workflow for scoping, building, evaluating, and operating agents. Use for requirements, inputs, expected responses, success criteria, tools, and lifecycle questions.
