@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4: Assemble and deploy a RAG application</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0004 · Section 4 · About 20 minutes</div>
+  <h1>Assemble and deploy a RAG application</h1>
+  <p class="lede">Section 4 asks you to connect retrieval, inference, packaging, access, and release decisions. Use a concrete request path to remember what each component does. <a href="../references/exam-guide.md">Exam objectives</a>; <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">RAG chain source</a>.</p>
+
+  <div class="objective"><strong>Your win.</strong> Given a deployment scenario, choose the right index, inference path, and app boundary, then explain where permissions and state live.</div>
+
+  <h2>Follow one request</h2>
+  <ol>
+    <li><strong>Retrieve.</strong> An AI Search endpoint serves an index. A Delta Sync index follows a source table; a Direct Vector Access index needs application-managed updates. The retriever sends a query and receives matching passages. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Index types</a>; <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">retrieval</a>.</li>
+    <li><strong>Generate.</strong> The chain places the selected passages into the model input, calls a foundation model endpoint, and formats the answer. Pay-per-token Foundation Model APIs provide preconfigured model endpoints; provisioned throughput supplies dedicated capacity when needed. <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">Chain stages</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis">Model choices</a>.</li>
+    <li><strong>Deliver.</strong> A Databricks app can host agent code, a chat UI, and an API. A custom MLflow <code>pyfunc</code> can package preprocessing, prediction, and postprocessing as a registered model and be served through Model Serving. Databricks recommends Apps for new agents. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps">Apps</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">pyfunc</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">deployment guidance</a>.</li>
+  </ol>
+
+  <h2>Choose the index</h2>
+  <table>
+    <thead><tr><th>Requirement</th><th>Choice</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Source table changes often; index should follow it</td><td>Delta Sync, continuous</td><td>Continuous sync follows changes with seconds of latency and higher running cost. It is supported on standard endpoints. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</td></tr>
+      <tr><td>Scheduled updates are enough</td><td>Delta Sync, triggered</td><td>Call <code>sync()</code> or use the UI when new table data should become searchable. Storage-optimized endpoints support triggered sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</td></tr>
+      <tr><td>Application owns vector writes</td><td>Direct Vector Access</td><td>The application inserts, updates, and deletes vectors through the SDK or REST API. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</td></tr>
+      <tr><td>Very large corpus and faster indexing matter more than lowest query latency</td><td>Storage-optimized endpoint</td><td>It supports more than one billion 768-dimensional vectors and indexes 10–20 times faster; queries add about 250 ms relative to standard. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Source</a>.</td></tr>
+    </tbody>
+  </table>
+  <p>For identifiers or exact terms, consider hybrid keyword and vector search. For semantic similarity, use vector retrieval. An AI Search query can also filter by metadata and rerank results. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Source</a>.</p>
+
+  <h2>Choose the execution path</h2>
+  <table>
+    <thead><tr><th>Workload</th><th>Use</th><th>Do not confuse it with</th></tr></thead>
+    <tbody>
+      <tr><td>Interactive chat or tool-using agent</td><td>Databricks Apps for new custom agents; Model Serving remains a way to serve a registered custom model. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Apps guidance</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Model Serving</a>.</td><td>A batch SQL transformation.</td></tr>
+      <tr><td>Apply a model endpoint to rows in a table</td><td><code>ai_query</code> in SQL for supported batch inference workloads. It invokes an existing Model Serving endpoint. <a href="https://docs.databricks.com/aws/en/machine-learning/model-inference">Batch guide</a>; <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Function reference</a>.</td><td>Creating the model endpoint itself.</td></tr>
+      <tr><td>Try a hosted LLM without managing model deployment</td><td>A preconfigured pay-per-token Foundation Model APIs endpoint. <a href="https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis">Source</a>.</td><td>Packaging your retrieval chain as an MLflow model.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Make the chain deployable</h2>
+  <p>For the guide's <code>pyfunc</code> objective, put per-request preprocessing and postprocessing in <code>predict</code>; load reusable artifacts once in <code>load_context</code>. Log the Python dependencies, an input example, and a model signature. A Unity Catalog model name has the form <code>catalog.schema.model</code>. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">pyfunc</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/custom-models">signature</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">registration</a>.</p>
+  <p>Give callers <code>CAN QUERY</code> on the serving endpoint. Its creator also needs the Unity Catalog grants required by the served model and resources the chain uses. Endpoint access does not supply missing data permissions. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/manage-serving-endpoints">Endpoint ACL</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints">Creator identity</a>.</p>
+
+  <h2>Try the packaging step in a notebook</h2>
+  <p>This small chain has no external endpoint or data dependency. It proves the shape of preprocessing, prediction, and postprocessing before you swap in a retriever and LLM. Use a Databricks notebook with MLflow installed. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Custom pyfunc guide</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/custom-models">Input example and signature guide</a>.</p>
+  <pre><code>import mlflow
+import pandas as pd
+from mlflow.models.signature import infer_signature
+
+class TinyChain(mlflow.pyfunc.PythonModel):
+    def predict(self, context, model_input):
+        questions = model_input["question"].str.strip()  # preprocess
+        drafts = questions.map(lambda q: f"Draft for: {q}")  # stand-in model
+        return drafts.map(lambda text: text + " [demo]")  # postprocess
+
+example = pd.DataFrame({"question": ["  How do I reset a job?  "]})
+model = TinyChain()
+signature = infer_signature(example, model.predict(None, example))
+
+with mlflow.start_run():
+    info = mlflow.pyfunc.log_model(
+        name="tiny_chain",
+        python_model=model,
+        input_example=example,
+        signature=signature,
+        pip_requirements=[f"mlflow=={mlflow.__version__}", f"pandas=={pd.__version__}"],
+    )
+
+print(mlflow.pyfunc.load_model(info.model_uri).predict(example))</code></pre>
+  <p>The output should be <code>Draft for: How do I reset a job? [demo]</code>. This only tests packaging and local inference; it does not create a RAG index or endpoint. When registering a real model, use <code>mlflow.set_registry_uri("databricks-uc")</code> and a three-level <code>registered_model_name</code>. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Unity Catalog registration</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Dependency requirement</a>.</p>
+
+  <h2>Retrieve it from memory</h2>
+  <div class="scenario">A support chatbot searches 600 million embeddings. Documents arrive nightly. Users expect a chat UI and follow-up questions. A separate job summarizes 50,000 existing rows each night. Choose an AI Search endpoint and sync mode, a home for the interactive app, a state store, and an inference path for the nightly job. Explain one tradeoff.</div>
+  <textarea aria-label="Answer the section 4 deployment scenario" placeholder="Index, app, state, batch path, tradeoff"></textarea>
+  <details>
+    <summary>Check your answer</summary>
+    <p>A storage-optimized AI Search endpoint with a triggered Delta Sync index fits the corpus size and nightly update schedule; expect higher query latency than standard. Use a Databricks app for the chat UI and agent. Managed agent sessions preserve conversation state across turns; managed memory is for durable facts across separate conversations. Use <code>ai_query</code> against a supported endpoint for the nightly table workload. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Endpoint capacity</a>; <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Sync</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps">App</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/stateful-agents">State</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-inference">Batch</a>.</p>
+  </details>
+
+  <h2>Keep this</h2>
+  <p>Use the <a href="../reference/section-4-deployment-decisions.html">Section 4 decision sheet</a> for the remaining objectives, including MCP tools, prompt versions, CI/CD, and access. Revisit <a href="0002-genie-governed-stateful-analytics.html">the Genie lesson</a> for a stateful tool integration.</p>
+  <h2>Primary reading</h2>
+  <p>Start with <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Databricks AI Search</a>, then read <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Migrate an agent from Model Serving to Databricks Apps</a> for the current deployment distinction.</p>
+  <p class="small">Ask your teacher to check your scenario answer or explain any choice that still feels uncertain.</p>
+</main>
+</body>
+</html>

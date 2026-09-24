@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Section 4 deployment decisions</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Exam section 4</div>
+  <h1>Assembling and deploying applications</h1>
+  <p class="lede">Match the requirement to the component. “Vector Search” in the <a href="../references/exam-guide.md">March 18, 2026 exam guide</a> is now called <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Databricks AI Search</a>.</p>
+
+  <h2>Build and package</h2>
+  <table>
+    <thead><tr><th>Exam cue</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>Simple chain, preprocessing, postprocessing</td><td>Write the ordered request path: normalize input, retrieve or call a model, format output. A custom MLflow <code>pyfunc</code> puts per-request logic in <code>predict</code> and one-time artifact loading in <code>load_context</code>. <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">RAG stages</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">pyfunc</a>.</td></tr>
+      <tr><td>RAG model ingredients</td><td>The retriever needs an index and embedding strategy; the generator needs a model endpoint. MLflow packaging records flavor, dependencies, input example, and signature. Custom <code>pyfunc</code> is for Python code; an input signature is required for Unity Catalog models. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">AI Search</a>; <a href="https://docs.databricks.com/aws/en/mlflow/models">Flavors and dependencies</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/custom-models">Signature</a>.</td></tr>
+      <tr><td>Register in Unity Catalog</td><td>Set the MLflow registry URI to <code>databricks-uc</code> and register under <code>catalog.schema.model</code>. The <code>registered_model_name</code> argument can register during <code>log_model</code>. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Retrieve</h2>
+  <table>
+    <thead><tr><th>Exam cue</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>Create and query an index</td><td>Create an AI Search endpoint, then an index. Query with the SDK, REST API, or SQL <code>vector_search</code> function. For a text query through the SDK, use <code>similarity_search(query_text=..., columns=..., num_results=...)</code>. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Create</a>; <a href="https://docs.databricks.com/aws/en/ai-search/query-ai-search">Query</a>.</td></tr>
+      <tr><td>Source table drives updates</td><td>Delta Sync index. Continuous sync favors freshness and costs more; triggered sync favors scheduled updates. Direct Vector Access means your application updates vectors itself. Storage-optimized endpoints support triggered sync, with partial index rebuilds. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</td></tr>
+      <tr><td>Scale, latency, cost</td><td>Standard endpoints support about 320 million vectors at dimension 768 and high QPS. Storage-optimized endpoints exceed one billion, index 10–20 times faster, and add about 250 ms query latency. Check current limits and pricing before choosing. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Source</a>.</td></tr>
+      <tr><td>Exact identifier plus semantic wording</td><td>Hybrid search combines keyword and vector retrieval; filters narrow candidates and reranking adjusts result order. <a href="https://docs.databricks.com/aws/en/ai-search/ai-search">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Run and govern</h2>
+  <table>
+    <thead><tr><th>Exam cue</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>Use a foundation model</td><td>Call a preconfigured pay-per-token Foundation Model APIs endpoint for a quick start. Use provisioned throughput when dedicated capacity is required. The foundation model endpoint serves the LLM; the app or chain supplies retrieval and orchestration. <a href="https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis">Source</a>.</td></tr>
+      <tr><td>Interactive application</td><td>Databricks Apps is the current recommended home for a new custom agent and can provide a chat UI and API. A registered custom model can still run on a Model Serving endpoint. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Agent deployment</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps">Apps</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Model Serving</a>.</td></tr>
+      <tr><td>Control who calls a serving endpoint</td><td>Grant <code>CAN QUERY</code> to callers. The endpoint creator needs the required Unity Catalog privileges on the served model and its dependencies. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/manage-serving-endpoints">Endpoint ACL</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints">Creator grants</a>.</td></tr>
+      <tr><td>Inference over many table rows</td><td>Use the <code>ai_query</code> SQL function with an existing supported Model Serving endpoint in a batch inference pipeline. <a href="https://docs.databricks.com/aws/en/machine-learning/model-inference">Batch guide</a>; <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Function</a>.</td></tr>
+      <tr><td>Conversation or durable memory</td><td>Managed agent sessions persist conversation state within an interaction. Managed agent memory holds facts that should survive into separate conversations. Both are backed by Lakebase. Use self-managed Lakebase storage when you need direct SQL or a custom schema. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/stateful-agents">Managed state</a>; <a href="https://docs.databricks.com/aws/en/agents/agent-memory/self-managed-memory">Self-managed</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Connect tools and release changes</h2>
+  <table>
+    <thead><tr><th>Exam cue</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>MCP server choice</td><td>Use Databricks-managed MCP servers for built-in Databricks tools. Register an external server as an MCP Service for governed access. Host custom tools as a Databricks app. The agent client uses the same MCP interface, with different URL and authentication. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/agent-tool">Tool choices</a>; <a href="https://docs.databricks.com/aws/en/generative-ai/mcp/custom-mcp-usage">Integration</a>.</td></tr>
+      <tr><td>Prompt lifecycle</td><td>Register prompt versions in MLflow Prompt Registry. Point a <code>dev</code>, <code>staging</code>, or <code>production</code> alias to the approved version; deployed apps can load by alias. This feature is beta. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
+      <tr><td>CI/CD</td><td>Keep code and resource definitions in Git, test chain components, then deploy with Declarative Automation Bundles. A triggered Delta Sync index must be synced after data changes; promoting a prompt means updating its alias. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD</a>; <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Index sync</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Prompt aliases</a>.</td></tr>
+      <tr><td>User-facing interface</td><td>Choose a Databricks app when you need a custom chat or form interface close to Databricks services. An existing workplace client such as Slack or Teams is an integration choice that depends on the organization; the guide names these channels but does not prescribe one. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps">Apps</a>; <a href="../references/exam-guide.md">Exam wording</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Common mistakes</h2>
+  <ol>
+    <li>Choosing Direct Vector Access and expecting source-table sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</li>
+    <li>Choosing continuous sync on a storage-optimized endpoint. It supports triggered sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search">Source</a>.</li>
+    <li>Assuming <code>ai_query</code> creates an endpoint. It invokes one that exists. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</li>
+    <li>Granting endpoint <code>CAN QUERY</code> while leaving the endpoint creator without required resource grants. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints">Source</a>.</li>
+    <li>Putting conversation history only in a process variable and expecting it to survive a restart. Use a persistent session store for resumable interactions. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/stateful-agents">Source</a>.</li>
+    <li>Hardcoding a production prompt version when the app is meant to follow approved prompt changes. Use a Prompt Registry alias. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</li>
+  </ol>
+
+  <p class="small">Return to <a href="../lessons/0004-assemble-and-deploy-a-rag-application.html">lesson 0004</a>. Ask your teacher to challenge you with a new Section 4 scenario.</p>
+</main>
+</body>
+</html>

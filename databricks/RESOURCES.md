@@ -36,6 +36,24 @@
   Distinguishes traces and spans from scorers, evaluation runs, and production monitoring.
 - [Unity Gateway observability](https://docs.databricks.com/aws/en/ai-gateway/observability)
   Distinguishes gateway usage tables and inference tables from application-level MLflow traces.
+- [Create AI Search endpoints and indexes](https://docs.databricks.com/aws/en/ai-search/create-ai-search)
+  Section 4 source for Delta Sync versus Direct Vector Access, continuous versus triggered updates, and endpoint requirements.
+- [Query an AI Search index](https://docs.databricks.com/aws/en/ai-search/query-ai-search)
+  SDK, REST, and SQL query paths, including hybrid search and index permissions.
+- [Deploy Python code with Model Serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code)
+  Custom MLflow pyfunc packaging with preprocessing, postprocessing, and serving dependencies.
+- [Manage model lifecycle in Unity Catalog](https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle)
+  MLflow model registration, three-level names, and model signatures.
+- [Migrate an agent from Model Serving to Databricks Apps](https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps)
+  Current guidance for choosing an app or a Model Serving deployment for an agent.
+- [Agent memory and sessions](https://docs.databricks.com/aws/en/agents/custom-agents/stateful-agents)
+  Current distinction between persistent conversation state and cross-conversation memory.
+- [Use prompts in deployed applications](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps)
+  Prompt Registry versions and aliases for deployment promotion.
+- [Use MCP servers in agents](https://docs.databricks.com/aws/en/generative-ai/mcp/custom-mcp-usage)
+  Current managed, external, and custom MCP integration paths.
+- [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd)
+  Git, tests, and Declarative Automation Bundles for releases.
 
 ## Gaps
 
