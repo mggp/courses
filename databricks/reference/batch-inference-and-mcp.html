@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Batch inference and MCP decision sheet</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Exam section 4</div>
+  <h1>Batch inference and MCP</h1>
+  <p class="lede"><code>ai_query</code> transforms selected data with a model. MCP lets an agent discover and call tools. Start there.</p>
+
+  <h2><code>ai_query</code> in one table</h2>
+  <table>
+    <thead><tr><th>Cue</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>Standard translate, classify, extract, summarize, or sentiment task</td><td>Start with a task-specific AI Function. Use <code>ai_query</code> when you need more control. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</td></tr>
+      <tr><td>Foundation or external model input</td><td><code>request</code> is a string expression. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Custom model input</td><td><code>request</code> is one column or a <code>STRUCT</code> with fields matching the endpoint's input features. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Custom endpoint has no inferable schema</td><td>Supply <code>returnType</code>. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Chat-model output must have fields</td><td>Supply <code>responseFormat</code> as a DDL schema or JSON response-format document. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Large run should preserve successful rows</td><td>Set <code>failOnError =&gt; false</code>; inspect <code>response</code> and <code>errorMessage</code>. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</td></tr>
+      <tr><td>Need prompt temperature or token limit</td><td>Use constant <code>modelParameters</code>. They cannot vary by row. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Production batch pipeline</td><td>Use a Lakeflow pipeline, scheduled Databricks workflow, or Structured Streaming workflow. Submit the full dataset rather than hand-splitting small batches. <a href="https://docs.databricks.com/aws/en/large-language-models/batch-inference-pipelines">Pipeline patterns</a>; <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">batch guidance</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>MCP choice in one table</h2>
+  <table>
+    <thead><tr><th>Cue</th><th>Choice</th><th>Remember</th></tr></thead>
+    <tbody>
+      <tr><td>Genie, AI Search, Databricks SQL, or Unity Catalog function</td><td>Managed MCP server</td><td>Databricks hosts it. Check underlying resource permissions. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Source</a>.</td></tr>
+      <tr><td>Vendor or self-hosted server already runs elsewhere</td><td>External server registered as an MCP Service</td><td>The Unity Catalog connection stores URL and credentials; Unity Gateway proxies calls. Caller needs <code>EXECUTE</code>, <code>USE CATALOG</code>, and <code>USE SCHEMA</code>. <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">Source</a>.</td></tr>
+      <tr><td>New business-specific tools or existing server to run on Databricks</td><td>Custom MCP server on a Databricks app</td><td>You own code and deployment; Apps permissions control access. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Fast eliminations</h2>
+  <ul>
+    <li><code>ai_query</code> invokes an existing endpoint. It does not deploy one. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</li>
+    <li><code>returnType</code> is not <code>responseFormat</code>. The former describes a custom endpoint's return type; the latter constrains chat-model output. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</li>
+    <li>An MCP Service is a governed Unity Catalog object, not a generic name for all MCP servers. <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">Source</a>.</li>
+    <li>The current managed list has no web-browser MCP server. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Source</a>.</li>
+    <li>Network reachability and Unity Catalog permissions are independent for external MCP Services. <a href="https://docs.databricks.com/aws/en/ai-gateway/govern-mcp-service">Source</a>.</li>
+  </ul>
+
+  <p class="small">Return to <a href="../lessons/0005-batch-inference-and-mcp.html">lesson 0005</a>.</p>
+</main>
+</body>
+</html>

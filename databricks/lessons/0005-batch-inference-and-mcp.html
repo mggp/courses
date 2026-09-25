@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 5: Batch inference and MCP</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0005 · Section 4 · About 24 minutes</div>
+  <h1>Batch inference and MCP</h1>
+  <p class="lede">These objectives sit next to each other in Section 4, but they solve different problems. <code>ai_query</code> applies a model to data through SQL or Python. MCP gives an agent a standard way to discover and call tools. <a href="../references/exam-guide.md">Exam objectives</a>; <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query"><code>ai_query</code> guide</a>; <a href="https://docs.databricks.com/aws/en/agents/mcp-tools">MCP overview</a>.</p>
+
+  <div class="objective"><strong>Your win.</strong> Given a workload, decide whether it needs batch inference or an agent tool. Then choose the right <code>ai_query</code> arguments or MCP server type without being fooled by endpoint, hosting, or permission distractors.</div>
+
+  <h2>Start with the split</h2>
+  <table>
+    <thead><tr><th>Question</th><th>Mechanism</th><th>Typical cue</th></tr></thead>
+    <tbody>
+      <tr><td>Should a model transform every selected row?</td><td><code>ai_query</code></td><td>Summarize, classify, extract, embed, or score a table column. Databricks describes <code>ai_query</code> as a general-purpose AI Function for supported models in SQL or Python. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</td></tr>
+      <tr><td>Should an agent choose and call a capability while reasoning?</td><td>MCP server</td><td>Search an index, query governed data, call a SaaS API, or run custom business logic. MCP connects agents to tools, resources, and prompts. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools">Source</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>The useful boundary.</strong> Batch inference is data-driven: the query selects the rows. MCP is agent-driven: the model decides whether and how to call a discovered tool. A solution may use both, but one does not replace the other.</p>
+
+  <h2>Read <code>ai_query(endpoint, request)</code> literally</h2>
+  <p>The function invokes an existing Model Serving endpoint and parses its response. It does not create or deploy the endpoint. The endpoint name is a string literal, it must be in the same workspace, and the function definer needs <code>CAN QUERY</code>. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Function reference</a>.</p>
+  <dl class="contract">
+    <dt><code>endpoint</code></dt>
+    <dd>A Databricks-hosted model service, provisioned-throughput model endpoint, external model endpoint, or custom model endpoint supported by <code>ai_query</code>. A <code>system.ai</code> model service needs no endpoint provisioning. External and custom models need their respective serving endpoints. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Supported model types</a>.</dd>
+    <dt><code>request</code></dt>
+    <dd>For a Databricks Foundation Model APIs or external model endpoint, pass a string expression. For a custom model endpoint, pass one column or a <code>STRUCT</code> whose field names match the model inputs. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Argument rules</a>.</dd>
+    <dt><code>returnType</code></dt>
+    <dd>Use this for a custom endpoint when Databricks cannot infer the output from a model schema. On Databricks Runtime 15.2 and later it is optional when a schema is available. Do not confuse it with an LLM output instruction. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Argument rules</a>.</dd>
+    <dt><code>responseFormat</code></dt>
+    <dd>Use this with a chat foundation model to request structured output. It accepts a DDL-style schema or a JSON response-format document. It requires Databricks Runtime 15.4 LTS or later. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Structured output</a>.</dd>
+    <dt><code>modelParameters</code></dt>
+    <dd>Pass constant chat, completion, or embedding parameters such as temperature and maximum tokens. These values cannot vary by row. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Parameter rules</a>.</dd>
+    <dt><code>failOnError</code></dt>
+    <dd>The default is <code>true</code>. With <code>false</code>, endpoint failures produce a result <code>STRUCT</code> containing <code>response</code> and <code>errorMessage</code>, so successful rows survive. Other kinds of errors can still fail the whole query. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Error behavior</a>.</dd>
+  </dl>
+
+  <h2>Choose <code>ai_query</code> only when it earns its flexibility</h2>
+  <p>Start with a task-specific AI Function when one matches the job. Use <code>ai_query</code> when you need your own prompt, model parameters, output format, or a custom, fine-tuned, or external model. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Databricks decision guidance</a>.</p>
+  <table>
+    <thead><tr><th>Requirement</th><th>Best fit</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Translate a column with standard behavior</td><td>Task-specific function such as <code>ai_translate</code></td><td>Databricks recommends the specialized function when it matches the objective. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</td></tr>
+      <tr><td>Extract a custom schema from each document</td><td><code>ai_query</code> with <code>responseFormat</code></td><td>You control the prompt and typed output contract. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Score rows with a custom ML model</td><td><code>ai_query</code> with a column or <code>STRUCT</code> request</td><td>The request fields map to the custom endpoint's input features. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</td></tr>
+      <tr><td>Serve an interactive, low-latency application request</td><td>Model Serving or an agent application</td><td>Databricks separates its batch inference guidance from real-time serving guidance. <code>ai_query</code> can invoke endpoints for real-time or batch work, but the Section 4 batch cue is a table transformation. <a href="https://docs.databricks.com/aws/en/machine-learning/model-inference">Batch guidance</a>; <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Function scope</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Make batch inference behave like a data pipeline</h2>
+  <ol>
+    <li>Send the full selected dataset in one query. AI Functions handles parallelism, retries, and scaling; manually splitting it into small batches can reduce throughput. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Best practices</a>.</li>
+    <li>For a large run, set <code>failOnError =&gt; false</code> and persist both successful responses and row-level endpoint errors. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Best practices</a>.</li>
+    <li>Use structured output when downstream SQL needs fields rather than prose. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Structured output</a>.</li>
+    <li>Put repeatable production work in a Lakeflow pipeline, scheduled Databricks workflow, or Structured Streaming workflow. Those pipelines can include ingestion, preprocessing, inference, and post-processing. <a href="https://docs.databricks.com/aws/en/large-language-models/batch-inference-pipelines">Pipeline patterns</a>.</li>
+  </ol>
+  <p class="small">Current requirements: AI Functions are unavailable on Classic SQL warehouses. The <code>ai_query</code> guide requires Databricks Runtime 15.4 LTS or later and recommends 18.2 or later for current features and performance. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</p>
+
+  <h2>Run a two-row extraction</h2>
+  <p>Run this in a SQL warehouse that supports AI Functions. If <code>system.ai.gpt-oss-20b</code> is unavailable in your region, replace it with a supported chat model service shown in your workspace. The query asks for typed output and preserves row-level endpoint errors. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Model availability and batch guidance</a>; <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Syntax</a>.</p>
+  <pre><code>WITH tickets(ticket_id, body) AS (
+  SELECT * FROM VALUES
+    (101, 'The dashboard is blank after login.'),
+    (102, 'Please add two seats to our subscription.')
+), inferred AS (
+  SELECT
+    ticket_id,
+    ai_query(
+      'system.ai.gpt-oss-20b',
+      'Classify this support ticket: ' || body,
+      responseFormat =&gt; 'STRUCT&lt;category:STRING, urgency:STRING&gt;',
+      failOnError =&gt; false
+    ) AS inference
+  FROM tickets
+)
+SELECT
+  ticket_id,
+  inference.response AS classification,
+  inference.errorMessage AS error_message
+FROM inferred;</code></pre>
+  <p>Check that each row has either a classification or an error. Then change the schema to <code>STRUCT&lt;category:STRING, urgency:STRING, reason:STRING&gt;</code> and rerun it. That small edit makes the role of <code>responseFormat</code> hard to forget.</p>
+
+  <h2>MCP is one interface with three hosting choices</h2>
+  <p>Managed, external, and custom servers expose the same MCP interface to agent code. The server URL and authentication differ. Databricks' <code>databricks-mcp</code> client can connect to all three. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents">Client and URL patterns</a>.</p>
+  <table>
+    <thead><tr><th>Choose</th><th>When it fits</th><th>Ownership and control</th></tr></thead>
+    <tbody>
+      <tr><td>Databricks managed MCP server</td><td>A ready-to-use Databricks tool already exists for the job: Genie One, one Genie Agent, AI Search, Databricks SQL, or Unity Catalog functions.</td><td>Databricks hosts the server and manages authentication. Unity Catalog still enforces access to the tool and its data. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Managed server list</a>.</td></tr>
+      <tr><td>External server registered as an MCP Service</td><td>An MCP server already runs outside the Databricks app, or a built-in <code>system.ai</code> MCP Service connects to a SaaS provider. You want governed discovery, credentials, grants, policies, audit, and usage through Unity Gateway.</td><td>A Unity Catalog HTTP connection stores the server URL and credentials. The MCP Service is the governed Unity Catalog securable and proxy. The external server must use Streamable HTTP and be reachable from the serverless compute plane. <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">Registration and requirements</a>.</td></tr>
+      <tr><td>Custom MCP server hosted as a Databricks app</td><td>You need tool behavior that no managed server supplies, or you want to deploy an existing Python or third-party MCP server inside Databricks.</td><td>You own the server code and deployment. Databricks Apps hosts it, Apps permissions control access, and the server must use an HTTP-compatible transport. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp">Custom server guide</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>The naming trap.</strong> An <em>MCP Service</em> is a Unity Catalog securable for a registered or Databricks-provided service. It is not a synonym for every MCP server. “External” means the server runs elsewhere and Databricks proxies it. “Custom” means you host the server as a Databricks app. <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">MCP Service definition</a>; <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp">custom hosting</a>.</p>
+
+  <h2>Pick the managed server by intent</h2>
+  <table>
+    <thead><tr><th>User intent</th><th>Managed server</th><th>Exam distinction</th></tr></thead>
+    <tbody>
+      <tr><td>Ask business questions in natural language</td><td>Genie One across the workspace, or a Genie Agent scoped to curated data</td><td>A Genie Agent MCP call is read-only and does not pass conversation history to Genie. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/genie-agent">Genie Agent MCP</a>; <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">managed list</a>.</td></tr>
+      <tr><td>Retrieve relevant unstructured documents</td><td>AI Search</td><td>The agent queries a named AI Search index. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Managed server list</a>.</td></tr>
+      <tr><td>Run a specific query for development or data engineering</td><td>Databricks SQL</td><td>Use Genie for natural-language business analytics. Use Databricks SQL when the query itself is the controlled operation. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/databricks-sql">SQL versus Genie</a>.</td></tr>
+      <tr><td>Expose predefined governed SQL logic</td><td>Unity Catalog functions</td><td>Prefer an existing governed function over writing and hosting a whole MCP server. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Managed server list</a>.</td></tr>
+    </tbody>
+  </table>
+  <p>The current AWS managed-server list does not include a managed web-browser MCP server. If an exam option invents one, do not select it as a current Databricks managed server. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Current managed server list</a>.</p>
+
+  <h2>Permissions follow both the server and the resource</h2>
+  <ul>
+    <li>A caller of an MCP Service needs <code>EXECUTE</code> on the service plus <code>USE CATALOG</code> and <code>USE SCHEMA</code>. End users do not need <code>USE CONNECTION</code>; granting it would let them bypass the MCP Service's tool selection, policies, and audit path. <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">MCP Service permissions</a>.</li>
+    <li>An agent also needs access to each underlying resource its MCP tools use, such as <code>CAN_RUN</code> on a Genie Agent or <code>SELECT</code> on an AI Search index. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents">Agent deployment permissions</a>.</li>
+    <li>An MCP Service can expose only selected tools. Service policies can allow, deny, or require approval for individual calls. Unity Gateway can rate-limit calls and records usage and audit data. <a href="https://docs.databricks.com/aws/en/ai-gateway/govern-mcp-service">MCP Service governance</a>.</li>
+    <li>For external providers, network reachability and Unity Catalog privileges are separate. A grant does not open an egress path, and an allowed network destination does not grant <code>EXECUTE</code>. <a href="https://docs.databricks.com/aws/en/ai-gateway/govern-mcp-service">Network and privilege layers</a>.</li>
+  </ul>
+
+  <h2>Common mistakes</h2>
+  <ol>
+    <li>Calling <code>ai_query</code> an endpoint deployment command. It only invokes an existing endpoint or model service. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</li>
+    <li>Using <code>returnType</code> to control an LLM's prose shape. Use <code>responseFormat</code> for structured chat-model output; <code>returnType</code> describes a custom endpoint's returned data type. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query">Source</a>.</li>
+    <li>Looping over rows or hand-making tiny batches. Submit one dataset query and let AI Functions manage parallelism, retries, and scaling. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</li>
+    <li>Leaving <code>failOnError</code> at its default for a large batch, then losing all progress to one endpoint failure. Set it to <code>false</code> and retain the error column. <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Source</a>.</li>
+    <li>Building a custom MCP server for AI Search, Genie, Databricks SQL, or an existing Unity Catalog function. Check the managed list first. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">Source</a>.</li>
+    <li>Calling every non-managed integration “external.” A server hosted as a Databricks app is custom even if its tools call a third-party API. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp">Source</a>.</li>
+    <li>Granting the MCP endpoint but forgetting its underlying data or tool permissions. The agent needs both. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents">Source</a>.</li>
+  </ol>
+
+  <h2>Retrieve it from memory</h2>
+  <div class="scenario">A nightly job must extract a typed product name and defect code from 400,000 support messages. Ten bad rows must not discard successful results. Separately, a support agent must search an existing AI Search index and create tickets through a third-party MCP server already hosted by the vendor. Choose the inference function and two key arguments. Then choose both MCP server types and name one permission needed for the external one.</div>
+  <textarea aria-label="Answer the batch inference and MCP scenario" placeholder="Inference choice, arguments, MCP choices, permission"></textarea>
+  <details>
+    <summary>Check your answer</summary>
+    <p>Use <code>ai_query</code> over the table with <code>responseFormat</code> for the typed extraction and <code>failOnError =&gt; false</code> to retain row-level endpoint errors. Use the managed AI Search MCP server for retrieval. Register the vendor-hosted server as an external MCP Service. Its caller needs <code>EXECUTE</code> on the service, plus <code>USE CATALOG</code> and <code>USE SCHEMA</code> on its parent objects. <a href="https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query"><code>ai_query</code></a>; <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp">managed servers</a>; <a href="https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service">external registration and grants</a>.</p>
+  </details>
+
+  <h2>Primary reading</h2>
+  <p>Read <a href="https://docs.databricks.com/aws/en/large-language-models/ai-query">Use <code>ai_query</code></a> for the decision rules and <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents">Use MCP servers in Custom Agents</a> for the shared client model. Keep the <a href="../reference/batch-inference-and-mcp.html">batch inference and MCP decision sheet</a> beside your practice questions.</p>
+  <p class="small">Ask your teacher to grade your scenario answer or give you a harder version with custom model schemas and on-behalf-of-user authentication.</p>
+</main>
+</body>
+</html>

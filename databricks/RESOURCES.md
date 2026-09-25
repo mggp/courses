@@ -50,8 +50,22 @@
   Current distinction between persistent conversation state and cross-conversation memory.
 - [Use prompts in deployed applications](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps)
   Prompt Registry versions and aliases for deployment promotion.
-- [Use MCP servers in agents](https://docs.databricks.com/aws/en/generative-ai/mcp/custom-mcp-usage)
+- [Use MCP servers in agents](https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents)
   Current managed, external, and custom MCP integration paths.
+- [Use `ai_query`](https://docs.databricks.com/aws/en/large-language-models/ai-query)
+  Current decision guidance, supported model types, production batch practices, and examples for the general-purpose AI Function.
+- [`ai_query` function reference](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_query)
+  Exact requirements, request shapes, return types, model parameters, structured output, and row-level error behavior.
+- [Deploy batch inference pipelines](https://docs.databricks.com/aws/en/large-language-models/batch-inference-pipelines)
+  Lakeflow, scheduled workflow, and Structured Streaming patterns for production inference pipelines.
+- [Databricks managed MCP servers](https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp)
+  Current managed-server list, use cases, URL patterns, and OAuth scopes.
+- [Register an external MCP server](https://docs.databricks.com/aws/en/ai-gateway/register-mcp-service)
+  MCP Service registration, Unity Catalog connections, credentials, grants, and network requirements.
+- [Host your own MCP server](https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp)
+  Custom MCP hosting in Databricks Apps and the HTTP transport requirement.
+- [Govern an MCP Service](https://docs.databricks.com/aws/en/ai-gateway/govern-mcp-service)
+  Tool selection, service policies, network controls, privileges, rate limits, usage, and audit records.
 - [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd)
   Git, tests, and Declarative Automation Bundles for releases.
 
