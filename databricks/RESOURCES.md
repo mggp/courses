@@ -68,6 +68,20 @@
   Tool selection, service policies, network controls, privileges, rate limits, usage, and audit records.
 - [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd)
   Git, tests, and Declarative Automation Bundles for releases.
+- [Declarative Automation Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles)
+  Source-controlled project, resource, test, and deployment definitions. Use for multi-environment application releases.
+- [Bundle deployment modes](https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes)
+  Development and production target behavior. Use for environment-isolation and release questions.
+- [MLflow Prompt Registry](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry)
+  Current version, alias, lineage, and governance model for prompts. Use for prompt lifecycle objectives.
+- [Create and edit prompts](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts)
+  Immutable prompt versions, commit messages, tags, diffs, and Python SDK operations.
+- [Evaluate and compare prompt versions](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts)
+  Consistent datasets, scorers, and run comparison for prompt release gates.
+- [Track prompts with application versions](https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/track-prompts-app-versions)
+  Automatic lineage between prompt versions and MLflow application versions.
+- [Workload identity federation for CI/CD](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation-provider)
+  Recommended secretless authentication pattern for automated deployment identities.
 
 ## Gaps
 

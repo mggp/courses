@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CI/CD and prompt lifecycle decision sheet</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Exam section 4</div>
+  <h1>CI/CD and prompt lifecycle</h1>
+  <p class="lede">Identify the changing artifact first. That tells you whether the action is a Git merge, bundle deployment, prompt alias move, index sync, or evaluation gate.</p>
+
+  <h2>Artifact to action</h2>
+  <table>
+    <thead><tr><th>Artifact</th><th>Version or state</th><th>Release action</th></tr></thead>
+    <tbody>
+      <tr><td>Agent code and Databricks resource configuration</td><td>Git commit plus bundle definition</td><td>Validate and deploy a Declarative Automation Bundle to a target. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</td></tr>
+      <tr><td>Prompt</td><td>Immutable MLflow Prompt Registry version</td><td>Evaluate the numbered version, then point the target alias at it. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
+      <tr><td>Retrieval documents or rows</td><td>Source Delta table or view and AI Search index state</td><td>Update the source; sync a triggered index or let a continuous index update. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</td></tr>
+      <tr><td>Quality decision</td><td>Evaluation dataset, scorers, traces, and results</td><td>Compare candidate and baseline with the same evaluation setup before promotion. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Prompt lifecycle</h2>
+  <table>
+    <thead><tr><th>Need</th><th>Mechanism</th></tr></thead>
+    <tbody>
+      <tr><td>Create or change a prompt</td><td>Call <code>mlflow.genai.register_prompt()</code>. Reusing the name creates a new immutable version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts">Source</a>.</td></tr>
+      <tr><td>Reproduce a test</td><td>Load <code>prompts:/catalog.schema.name/7</code>. Pin the version under test. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#step-4-use-the-new-prompt">Source</a>.</td></tr>
+      <tr><td>Let an environment follow an approved prompt</td><td>Load <code>prompts:/catalog.schema.name@staging</code> or <code>@production</code>. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
+      <tr><td>Promote</td><td>Reassign the target alias to the already-tested version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#promotion-workflow">Source</a>.</td></tr>
+      <tr><td>Rollback</td><td>Reassign <code>production</code> to the prior version; preserve it under <code>production-previous</code> before promotion. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#alias-strategies">Source</a>.</td></tr>
+      <tr><td>Link prompt and application versions</td><td>Use an active MLflow model while loading the prompt so MLflow records lineage to the application version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/track-prompts-app-versions">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Gate in this order</h2>
+  <ol>
+    <li>Run deterministic unit tests for code, routing, tool arguments, filters, and error paths. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</li>
+    <li>Deploy to an isolated pre-production bundle target and run integration tests. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes">Source</a>.</li>
+    <li>Sync a triggered AI Search index and verify retrieval against known examples. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</li>
+    <li>Run candidate and baseline on the same evaluation dataset and scorers. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</li>
+    <li>Require approval where the release policy calls for it, then deploy the bundle or move the prompt alias.</li>
+    <li>Monitor production traces, quality, latency, errors, and cost. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</li>
+  </ol>
+
+  <h2>Fast eliminations</h2>
+  <ul>
+    <li>A branch merge does not give a deployed app a movable prompt alias. Use Prompt Registry for the exam's prompt-promotion requirement. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</li>
+    <li>Overwriting a JSON file or Delta row does not provide the Prompt Registry's immutable-version and alias model for controlled rollback. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">Source</a>.</li>
+    <li>A prompt text diff does not measure response quality. Evaluate both versions with the same data and scorers. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#compare-prompt-quality-across-evaluation-runs">Source</a>.</li>
+    <li>A successful deployment is not a quality gate. Deployment and MLflow evaluation answer different questions. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai">evaluation</a>.</li>
+    <li>A triggered AI Search index is not fresh until you sync it. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</li>
+    <li>An alias is mutable. Record the resolved version when reproducibility matters. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">Source</a>.</li>
+  </ul>
+
+  <p class="small">Return to <a href="../lessons/0006-ci-cd-for-ai-workflows.html">lesson 0006</a>.</p>
+</main>
+</body>
+</html>

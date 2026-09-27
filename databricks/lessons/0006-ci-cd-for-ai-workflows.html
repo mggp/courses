@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 6: CI/CD for AI workflows and prompts</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0006 · Section 4 · About 28 minutes</div>
+  <h1>CI/CD for AI workflows and prompts</h1>
+  <p class="lede">An AI release is not one artifact. Code, Databricks resources, prompts, retrieval data, and evaluation evidence can change on different schedules. The useful skill is knowing what to version, what to promote, and what to test before one environment can point at the next candidate. <a href="../references/exam-guide.md">Exam objectives</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Databricks CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">MLflow Prompt Registry</a>.</p>
+
+  <div class="objective"><strong>Your win.</strong> Given a development, staging, and production scenario, choose the release mechanism for each artifact. Then design a quality gate that can reject a prompt or agent change without confusing source control, deployment, indexing, and evaluation.</div>
+
+  <h2>The model to keep in your head</h2>
+  <table>
+    <thead><tr><th>Changing artifact</th><th>System of record</th><th>Promotion action</th></tr></thead>
+    <tbody>
+      <tr><td>Agent code, notebooks, tests, and bundle configuration</td><td>Git repository</td><td>Review and merge code, then validate and deploy a Declarative Automation Bundle to the target. Databricks recommends bundles for CI/CD and uses them to define source files and resources as one deployable project. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/bundles">bundle concepts</a>.</td></tr>
+      <tr><td>Prompt template</td><td>MLflow Prompt Registry in Unity Catalog</td><td>Create an immutable version, evaluate it, then move an alias such as <code>staging</code> or <code>production</code> to that version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts">Versions</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">aliases and promotion</a>.</td></tr>
+      <tr><td>Documents or rows used for retrieval</td><td>Source Delta table or view plus an AI Search index</td><td>Update the source and sync the index. Continuous indexes update automatically; triggered indexes require a UI, SDK, or REST sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</td></tr>
+      <tr><td>Quality evidence</td><td>MLflow experiment, evaluation dataset, traces, and evaluation runs</td><td>Run the same dataset and scorers against the candidate and baseline, compare results, and let the release process enforce the team's acceptance rule. Databricks documents evaluation during development or a release process and recommends consistent datasets for prompt comparison. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">MLflow 3 for GenAI</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">prompt evaluation</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>The central distinction.</strong> A Git merge promotes source. A bundle deployment promotes Databricks code and resource definitions. An alias reassignment promotes a prompt version. An index sync promotes changed retrieval data into the searchable index. None substitutes for the others.</p>
+
+  <h2>A release has two loops</h2>
+  <p>For this lesson, continuous integration means that every candidate change runs automated checks. Continuous delivery means the passing candidate is ready for a controlled release, which may still require approval. The exam's “gated release process” is this second shape: automation proves readiness, then an authorized promotion changes the production reference. The Databricks CI/CD overview defines the broader practice as short, frequent development and delivery cycles built around automated build, test, deployment, and monitoring. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</p>
+  <p>The software loop handles code and infrastructure. Store source in Git, develop unit tests, validate the bundle, deploy it to an isolated target, run integration tests, and then deploy the approved revision to production. Databricks names version, code, build, deploy, test, run, and monitor as the common CI/CD flow, and recommends Declarative Automation Bundles for deployment. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</p>
+  <p>The quality loop handles probabilistic behavior. Trace the application, build a representative evaluation dataset, run the candidate with fixed scorers, compare it with the baseline, and continue monitoring production. MLflow 3 supports the same judges and scorers in development and production, and it can run evaluation as part of a release process. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</p>
+  <p>Keep both loops. A unit test can prove that the retriever receives the right filter, but it cannot prove that the final answer is sufficiently grounded. An LLM judge can score groundedness, but it should not replace an exact assertion that a forbidden tool was never called. Databricks describes GenAI output as non-deterministic and supports built-in and custom scorers for qualities that are not captured by exact software assertions. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</p>
+
+  <h2>Prompt lifecycle on Databricks</h2>
+  <ol>
+    <li><strong>Register.</strong> Give the prompt a three-level Unity Catalog name and call <code>mlflow.genai.register_prompt()</code>. Registering again under the same name creates another version. Commit messages and tags record why it changed. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts">Source</a>.</li>
+    <li><strong>Do not edit in place.</strong> Prompt versions are immutable. An edit creates a new version, which preserves history and supports rollback. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#step-3-edit-the-prompt">Source</a>.</li>
+    <li><strong>Test a fixed version.</strong> Load the candidate by version number while evaluating it. Use the same dataset and scorers for the candidate and baseline so the comparison measures the prompt change rather than a changed test. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</li>
+    <li><strong>Promote by alias.</strong> Assign <code>dev</code>, <code>staging</code>, or <code>production</code> to an approved version. A deployed application can load <code>prompts:/catalog.schema.name@production</code>, so moving the alias can update its prompt without a code redeployment. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</li>
+    <li><strong>Keep rollback cheap.</strong> Before moving <code>production</code>, preserve the current version under an alias such as <code>production-previous</code>. Rollback is another alias reassignment. Databricks includes this pattern in its deployed-prompt guide. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#alias-strategies">Source</a>.</li>
+    <li><strong>Track the prompt with the app.</strong> When an application has an active MLflow model, loading a registry prompt creates lineage between the prompt version and application version. The MLflow <code>LoggedModel</code> acts as the application-version record and can link to an external Git commit. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/track-prompts-app-versions">Source</a>.</li>
+  </ol>
+  <p class="callout"><strong>Current product status.</strong> The Databricks documentation marks MLflow Prompt Registry on Databricks as Beta. Treat it as the correct current mechanism for this exam objective, but check Preview availability and the documented Unity Catalog privileges before planning a production rollout. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">Source</a>.</p>
+
+  <h2>What each environment should reference</h2>
+  <table>
+    <thead><tr><th>Context</th><th>Prompt reference</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Reproducible test run</td><td><code>prompts:/catalog.schema.name/7</code></td><td>Pin the exact immutable version so a moving alias cannot change the test halfway through the release. Loading a numbered version is supported by the Prompt Registry API. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#step-4-use-the-new-prompt">Source</a>.</td></tr>
+      <tr><td>Staging application</td><td><code>prompts:/catalog.schema.name@staging</code></td><td>The stable alias lets the application stay unchanged while the release process selects the candidate version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
+      <tr><td>Production application</td><td><code>prompts:/catalog.schema.name@production</code></td><td>The alias supports controlled promotion and rollback without editing application code. Databricks recommends aliases rather than hard-coded versions in deployed applications. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Test the agent in layers</h2>
+  <table>
+    <thead><tr><th>Layer</th><th>Good assertion</th><th>Do not confuse it with</th></tr></thead>
+    <tbody>
+      <tr><td>Pure code and tool adapters</td><td>Parsing, routing rules, tool argument schemas, filter construction, guardrail branches, and error handling pass deterministic unit tests. Databricks includes unit and integration tests in a bundle project and names <code>pytest</code> as an integration-testing tool. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles">Bundles</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD testing</a>.</td><td>An end-to-end quality score.</td></tr>
+      <tr><td>Retrieval</td><td>Known questions retrieve the expected documents or facts, with the intended metadata filters. Databricks separates query understanding, retrieval, prompt augmentation, generation, and post-processing as RAG components. <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">Source</a>.</td><td>Whether the final answer's prose is good.</td></tr>
+      <tr><td>Prompt and model behavior</td><td>The candidate meets format, correctness, relevance, safety, and use-case-specific scorer thresholds on a fixed evaluation dataset. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</td><td>An exact string equality test for every LLM response.</td></tr>
+      <tr><td>Whole agent</td><td>Traces show the expected tool calls and intermediate spans, and evaluation measures the final response. MLflow Tracing records prompts, retrievals, tool calls, responses, latency, and cost. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</td><td>A health check that proves only that the endpoint responds.</td></tr>
+      <tr><td>Production</td><td>Run selected scorers on production traces and watch quality, latency, errors, and cost after release. MLflow supports production monitoring with scorers over sampled traffic. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</td><td>The pre-release gate. Production monitoring detects problems after exposure; it does not justify skipping the gate.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>AI Search belongs in the release plan</h2>
+  <p>A prompt may expect fields or document content that the current index does not contain. For a Delta Sync index in Continuous mode, changes to the source table or view flow into the index automatically. For Triggered mode, the pipeline must call the sync operation, such as <code>index.sync()</code>, and wait until the index is ready before running retrieval tests. Standard endpoints process changed data incrementally in both modes; storage-optimized endpoints support only Triggered sync and partially rebuild on each sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</p>
+  <p>The release order follows the dependency: update the governed source, sync the candidate index, run retrieval tests, run end-to-end evaluation, then promote the prompt or application. This ordering is a practical inference from the documented index update and evaluation mechanisms, not a Databricks-mandated pipeline shape.</p>
+
+  <h2>Bundles, aliases, and Terraform are not rivals</h2>
+  <ul>
+    <li>Use a Declarative Automation Bundle when application code, tests, jobs, pipelines, Model Serving endpoints, MLflow experiments, or registered models must move together through targets. Databricks recommends bundles for CI/CD. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles">Source</a>.</li>
+    <li>Use Prompt Registry aliases when the release unit is a prompt and the application should select an approved version without changing code. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</li>
+    <li>Use the Databricks Terraform provider for workspace or account infrastructure when Terraform is the right infrastructure-as-code boundary. Databricks lists Terraform separately from bundles and points to developer-tool use cases for the choice. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</li>
+    <li>Use Git folders alone only when you need source-controlled files and lack an external CI/CD pipeline. Git folders do not source-control job and pipeline configuration, which makes them weaker for multi-environment deployment. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd#other-tools-for-source-control">Source</a>.</li>
+  </ul>
+
+  <h2>Authentication and isolation</h2>
+  <p>Define separate bundle targets for development, staging, and production settings. Bundle targets can override workspace, variables, resources, permissions, and run identity. Development and production modes apply different defaults, including paused development schedules and production branch validation. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/reference#targets">Targets</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/deployment-modes">deployment modes</a>.</p>
+  <p>Do not infer a third bundle mode named <code>staging</code>. Target names are user-defined, but the documented <code>mode</code> values are <code>development</code> and <code>production</code>. A team can name a target <code>staging</code> and configure it for pre-production behavior. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/reference#targetsname-mode">Source</a>.</p>
+  <p>For CI/CD authentication, Databricks strongly recommends workload identity federation where possible. The automation authenticates as a service principal using an identity-provider token, avoiding stored Databricks secrets. <a href="https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation-provider">Source</a>.</p>
+
+  <h2>Runnable prompt-promotion exercise</h2>
+  <p>Run this in a Databricks notebook after replacing <code>main.genai</code> with a Unity Catalog catalog and schema you can use. The Prompt Registry documentation lists MLflow 3.1 or later and Unity Catalog privileges including <code>CREATE FUNCTION</code>, <code>EXECUTE</code>, and <code>MANAGE</code> as prerequisites. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#prerequisites">Source</a>.</p>
+  <pre><code>%pip install --upgrade "mlflow[databricks]&gt;=3.14.0"
+dbutils.library.restartPython()
+
+import mlflow
+
+mlflow.set_tracking_uri("databricks")
+mlflow.set_registry_uri("databricks-uc")
+
+name = "main.genai.release_lesson_prompt"  # change this
+
+v1 = mlflow.genai.register_prompt(
+    name=name,
+    template="Answer the question in one sentence: {{question}}",
+    commit_message="Baseline one-sentence answer",
+)
+
+v2 = mlflow.genai.register_prompt(
+    name=name,
+    template=(
+        "Answer using only the supplied context. "
+        "If the context is insufficient, say you do not know.\n"
+        "Context: {{context}}\nQuestion: {{question}}"
+    ),
+    commit_message="Require grounding and abstention",
+)
+
+# Development points to the candidate.
+mlflow.genai.set_prompt_alias(name, "dev", v2.version)
+
+# A release test should load the fixed version, not a moving alias.
+candidate = mlflow.genai.load_prompt(f"prompts:/{name}/{v2.version}")
+rendered = candidate.format(
+    context="Paris is the capital of France.",
+    question="What is the capital of France?",
+)
+assert "Paris" in rendered
+
+# After evaluation passes, move the same tested version through the gates.
+mlflow.genai.set_prompt_alias(name, "staging", v2.version)
+mlflow.genai.set_prompt_alias(name, "production", v2.version)
+
+production = mlflow.genai.load_prompt(f"prompts:/{name}@production")
+assert production.version == v2.version
+print(f"Production now uses prompt version {production.version}")
+
+# Rollback is an alias move. In a real release, preserve the former
+# production version before promotion under a production-previous alias.
+mlflow.genai.set_prompt_alias(name, "production", v1.version)</code></pre>
+  <p>This exercise verifies registry mechanics, not response quality. A real gate must run both prompt versions against the same evaluation dataset and scorers before moving <code>production</code>. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</p>
+
+  <h2>Common mistakes</h2>
+  <ol>
+    <li>Treating a mutable prompt alias as a version. A version is immutable; an alias is a movable name that points to one version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">Source</a>.</li>
+    <li>Evaluating <code>@staging</code> and later assuming it still identifies the tested content. Record and test the resolved version number for reproducibility. The registry supports loading both aliases and fixed versions. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Aliases</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#step-4-use-the-new-prompt">fixed versions</a>.</li>
+    <li>Promoting a prompt because its text diff looks sensible. A text diff shows wording changes; Databricks says to run both versions on the same dataset and judges to compare output quality. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts#compare-prompt-quality-across-evaluation-runs">Source</a>.</li>
+    <li>Testing only the final answer. A failure might come from query understanding, retrieval, prompt augmentation, generation, or post-processing. Test the changed component and then the whole path. <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">Source</a>.</li>
+    <li>Changing source documents without confirming index freshness before evaluation. Triggered Delta Sync indexes require an explicit sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</li>
+    <li>Using one person's credentials in unattended production deployment. Databricks recommends service principals and workload identity federation for CI/CD. <a href="https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation-provider">Source</a>.</li>
+    <li>Assuming a successful bundle deployment proves agent quality. Deployment and evaluation are separate gates in the documented lifecycle. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai">GenAI evaluation</a>.</li>
+  </ol>
+
+  <h2>Retrieve it from memory</h2>
+  <div class="scenario">A support agent has a new prompt, a changed retriever filter, and three new policy documents. The team uses a triggered AI Search index. The candidate passes a smoke test in staging, but no regression evaluation has run. Production currently uses prompt version 12 through the <code>production</code> alias. Describe the release order, name one component test and one end-to-end gate, and explain the fastest safe rollback if version 13 degrades answers.</div>
+  <textarea aria-label="Answer the CI/CD scenario" placeholder="Release order, component test, end-to-end gate, rollback"></textarea>
+  <details>
+    <summary>Check your answer</summary>
+    <p>Update the governed source documents, explicitly sync the triggered AI Search index, and confirm it is ready. Unit-test the changed filter construction, then run retrieval checks for known policy questions. Evaluate prompt version 13 and the current baseline on the same evaluation dataset and scorers. If the candidate meets the team's acceptance rule and approval is granted, move the <code>production</code> alias to version 13. Preserve version 12 under a rollback alias first. If production quality drops, point <code>production</code> back to version 12. A smoke test alone does not measure answer quality. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Index sync</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">evaluation</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#alias-strategies">rollback aliases</a>.</p>
+  </details>
+
+  <h2>Primary reading</h2>
+  <p>Read <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Use prompts in deployed applications</a> first. It is the closest match to the exam's promotion scenario. Then use <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD on Databricks</a> for the surrounding software pipeline and keep the <a href="../reference/ci-cd-and-prompt-lifecycle.html">CI/CD and prompt lifecycle decision sheet</a> beside your practice questions.</p>
+  <p class="small">Ask your teacher to grade your retrieval answer or generate a harder scenario involving separate workspaces, a failed index sync, and an evaluation regression.</p>
+</main>
+</body>
+</html>
