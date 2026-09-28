@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 8: Custom agents on Databricks Apps</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0008 · Deployment and access · 15-minute core + lab</div>
+  <h1>Custom agents on Databricks Apps</h1>
+  <p class="lede">Keep the agent logic in Python. Deploy an application process that handles requests, calls models and tools, and records execution evidence.</p>
+  <div class="objective"><strong>Your win.</strong> Translate Lesson 7's model deployment into an Apps deployment, choose the correct identity for each resource call, and prove that a code change reached the running agent.</div>
+  <p class="small">This is the current Apps approach requested as a follow-up to <a href="0007-model-packaging-and-registration.html">model packaging and registration</a>. It develops the <a href="../references/exam-guide.md">guide's agent, application deployment, access, memory, and CI/CD concepts</a>; exact Apps commands are not presented as additional exam objectives. <a href="../reference/custom-agents-on-databricks-apps.html">Quick reference</a>.</p>
+
+  <h2 id="concept">1. What runs where?</h2>
+  <p>A Databricks app is a containerized web service on Databricks serverless infrastructure, with its own runtime and identity. It can call other Databricks services. For our agent, the app hosts orchestration code; an LLM API handles generation, and a retriever or tool accesses data. Deploying the app does not move those remote services into its container. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/key-concepts">Apps architecture</a>.</p>
+  <pre><code>Browser or OAuth client
+    ↓
+Databricks app
+    AgentServer → request handler → agent / chain
+                                      ↓
+                         LLM API + retrieval + tools
+                                      ↓
+    response formatting ← answer / tool results
+
+MLflow records traces and evaluation evidence.
+Persistent storage holds history or durable state.</code></pre>
+  <p>This diagram combines the documented <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent">agent server architecture</a>, <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts">MLflow data model</a>, and <a href="https://docs.databricks.com/aws/en/agents/custom-agents/chat-app">optional persistent chat history</a>.</p>
+  <p>Apps fits custom routes, middleware, asynchronous Python, local development, and Git-based releases. An existing Model Serving deployment can remain appropriate when its registered-model workflow meets the requirements. A migration changes the request handlers, files, permissions, and release process; it is more than pointing at a new URL. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Migration guidance</a>.</p>
+
+  <h2 id="translation">2. Translate the previous lesson</h2>
+  <table>
+    <thead><tr><th>Model Serving pattern</th><th>Apps pattern</th></tr></thead>
+    <tbody>
+      <tr><td>Log a package, register its version, deploy that version.</td><td>Deploy source and configuration, then start the app. The documented Apps workflow does not require registering the agent as a UC model. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Deployment migration</a>.</td></tr>
+      <tr><td><code>ResponsesAgent.predict</code> and <code>predict_stream</code>.</td><td>Module-level handlers decorated with <code>@invoke()</code> and <code>@stream()</code>, served by MLflow <code>AgentServer</code>. Async is recommended; synchronous handlers are also documented. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps#step-3-transform-agent-code">Handler migration</a>.</td></tr>
+      <tr><td>Resource declarations in <code>MLmodel</code>.</td><td>App resources and scopes in <code>databricks.yml</code>, or equivalent workspace UI settings. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication">Apps authentication</a>.</td></tr>
+      <tr><td>Packaged model environment.</td><td>Application dependency files. For <code>uv</code>, deploy <code>pyproject.toml</code> and <code>uv.lock</code>. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/dependencies">Apps dependencies</a>.</td></tr>
+    </tbody>
+  </table>
+  <p>Keep preprocessing and output conversion in the request execution path. The Apps server still needs a clear contract. The recommended template exposes <code>/responses</code> and uses Responses-compatible inputs and outputs; <code>AgentServer</code> is the HTTP server, while your chosen agent framework implements reasoning and tool orchestration. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#step-2-understand-the-agent-application">Template components</a>.</p>
+  <p class="callout">Do not equate “MLflow is present” with “a model version must be registered.” A GenAI Logged Model can hold application metadata and point at external code such as a Git commit. It can link traces, prompts, and evaluation results without containing a deployable copy of the application. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts">Logged Models</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/track-prompts-app-versions">Metadata versus code storage</a>.</p>
+
+  <h2 id="files">3. Know which file controls what</h2>
+  <dl class="contract">
+    <dt>Agent source</dt><dd>Handlers, prompts, adapters, and tool logic. Migration moves source and supporting artifacts into the app project and updates their paths. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps#step-2-migrate-agent-code">Source layout</a>.</dd>
+    <dt>databricks.yml</dt><dd>The Declarative Automation Bundle defines app resources and deployment settings. Use it to version and deploy the application configuration. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial">Apps and bundles</a>.</dd>
+    <dt>app.yaml</dt><dd>Defines runtime settings such as the start command and environment variables. The agent guide also shows inline app <code>config</code> in the bundle. Follow your template's configuration structure. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime">App execution</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#step-6-configure-authentication">inline configuration example</a>.</dd>
+    <dt>Dependency files</dt><dd><code>requirements.txt</code> takes precedence and selects pip. Without it, <code>pyproject.toml</code> plus <code>uv.lock</code> selects uv. Declare all packages for a uv-based app; those apps have no preinstalled Python libraries. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/dependencies">Install rules</a>.</dd>
+  </dl>
+  <p>Commit the lockfile and constrain the Python interpreter to a tested version. A package lock alone does not select the interpreter. For the current migration template, Databricks recommends <code>requires-python = ">=3.12,&lt;3.13"</code>. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps#step-7-deploy-the-agent-using-declarative-automation-bundles">Reproducible deployment</a>.</p>
+
+  <h2 id="identity">4. Separate entry permission from data identity</h2>
+  <p><code>CAN USE</code> lets someone run and interact with the app. It does not answer whose credentials the agent uses for its next data call. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/permissions">App permissions</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Authorization models</a>.</p>
+  <table>
+    <thead><tr><th>Requirement</th><th>Identity to use</th></tr></thead>
+    <tbody>
+      <tr><td>All callers may read the same support corpus.</td><td>App authorization. Databricks creates a dedicated service principal; grant it the required resource access.</td></tr>
+      <tr><td>Each salesperson must see only their permitted rows.</td><td>User authorization. Use the forwarded caller identity so their existing Unity Catalog policies apply.</td></tr>
+      <tr><td>Shared trace logging plus private user data.</td><td>Combine them. Write traces as the app, query restricted data as the user.</td></tr>
+    </tbody>
+  </table>
+  <p class="small">All three choices follow <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#compare-and-combine-models">the documented authorization comparison</a>.</p>
+  <p>For user authorization, both API scopes and the user's resource permissions must allow the call. A <code>sql</code> scope permits the relevant API usage; it does not grant <code>SELECT</code> on a table. Use the template's <code>get_user_workspace_client()</code> helper during request handling, when the forwarded token exists. Check the helper's import path in your template: Databricks examples use both <code>agent_server.utils</code> and <code>databricks_app.utils</code>. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth#scope-based-security-and-privilege-escalation">Scopes</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#implement-user-authorization">Request-time client</a>.</p>
+  <p class="callout"><strong>Test the actual identity.</strong> The agent authentication guide documents a fallback to the app service principal when the forwarded token is absent. Test its <code>whoami</code> diagnostic with two users. For user-restricted operations, treat an unexpected app identity as a failed authorization test, even if the answer looks correct. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#verify-user-authorization">Identity verification</a>.</p>
+
+  <h2 id="resources">5. Resource access still needs configuration</h2>
+  <p>App resources connect code to existing services and grant the app identity access. For example, a SQL warehouse grant covers query compute, while the tables need their own grants. An environment variable containing a warehouse ID is configuration, not permission. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources">Resource declarations</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Warehouse and table access</a>.</p>
+  <p>MCP connects the agent to tools, but the caller still needs access to the resources behind those tools. For app authorization, declare the required indexes, functions, or other supported resources under <code>resources.apps.&lt;app&gt;.resources</code>. A pure local calculation tool needs no external resource grant. <a href="https://docs.databricks.com/aws/en/agents/mcp-tools/use-mcp-in-agents">MCP access</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#define-local-python-function-tools">Local tools</a>.</p>
+  <details><summary>Current LLM routing caveat</summary><p>The latest guidance routes agent LLM calls through Unity Gateway. Where enforcement is enabled, legacy pay-per-token endpoints are disabled. Configure the appropriate model API and grant the calling identity <code>EXECUTE</code>, plus catalog and schema usage. Adding the old serving-endpoint resource alone does not complete that migration. This is a downstream LLM access issue, separate from deploying the agent app. <a href="https://docs.databricks.com/aws/en/ai-gateway/migrate-to-unity-gateway">Unity Gateway migration and Apps limitations</a>.</p></details>
+
+  <h2 id="release">6. Release code, then verify behavior</h2>
+  <pre><code id="release-commands">databricks bundle validate
+databricks bundle deploy
+databricks bundle run YOUR_APP_RESOURCE_KEY</code></pre>
+  <p>Use the key under <code>resources.apps</code> for the final command. Validation checks configuration. Deployment uploads source and configures resources; running the app starts or restarts it with that code. Uploading a new version alone is insufficient. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial">Bundle workflow</a>.</p>
+  <p>For a release, check tool behavior and user access, then evaluate answer quality on a fixed dataset. MLflow separates traces, assessments, evaluation runs, and application versions. A healthy HTTP response is only one piece of that evidence. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts">MLflow quality data</a>.</p>
+  <p>Keep three kinds of state distinct. A request's message history provides conversation context. The template's optional Lakebase-backed chat history persists conversations across sessions; its default in-memory history does not. Agent working state needs its own deliberate persistence design. A trace is an execution record, not a memory mechanism that automatically supplies the next prompt. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/chat-app#enable-chat-history">Chat persistence</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts">Trace semantics</a>.</p>
+
+  <h2 id="lab">7. Lab: add a tool and inspect the call</h2>
+  <p>Use a development workspace with Apps enabled and access to an approved LLM. Creating and querying the template uses app and model resources. The task is complete when a trace shows your custom tool executing in the deployed app.</p>
+  <ol>
+    <li>Create an app through <strong>+ New → App → Agents → Custom Agent (OpenAI SDK)</strong>. Create or select the MLflow experiment during setup. Open its chat UI, then use the app page's source-sync command to obtain the project locally. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#step-1-clone-the-agent-app-template">Template setup</a>.</li>
+    <li>In the module that constructs the agent, add this original teaching tool and append it to the agent's existing <code>tools</code> list. Preserve its configured model, clients, and MCP connections. The SDK decorator pattern is documented by Databricks. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#define-local-python-function-tools">Function tools</a>.</li>
+  </ol>
+  <pre><code id="tool-code">from agents import function_tool
+
+def count_words(text: str) -> int:
+    """Count whitespace-separated words in the supplied text."""
+    return len(text.split())
+
+assert count_words("  deploy   then run  ") == 3
+assert count_words("   ") == 0
+
+word_count = function_tool(count_words)
+# Add word_count to the existing Agent(..., tools=[...]) list.
+# Instruction to add to the agent:
+# "For word-count requests, call count_words and return its result."</code></pre>
+  <ol start="3">
+    <li>Test locally using the template's <code>uv run quickstart</code> and <code>uv run start-app</code> commands. Ask it to count the words in <code>deploy then run</code>. Expected tool result: <code>3</code>. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#step-5-run-the-agent-app-locally">Local execution</a>.</li>
+    <li>Because the UI already created the app, bind it before the first bundle deployment: <code>databricks bundle deployment bind YOUR_APP_RESOURCE_KEY YOUR_APP_NAME</code>. Then run the three release commands above. Binding avoids a duplicate-name failure. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent#step-8-deploy-the-agent-to-databricks-apps">Existing-app binding</a>.</li>
+    <li>Repeat the request in the deployed chat UI. Inspect its MLflow trace for the tool arguments and result. Seeing the number <code>3</code> alone is insufficient, since the LLM might have calculated it without calling the tool. The experiment needs app access to record traces. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#grant-permissions-to-the-mlflow-experiment">Experiment access</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Trace evidence</a>.</li>
+  </ol>
+  <p>For a client-side query, use an OAuth-configured Databricks profile and installed <code>databricks-sdk</code> and <code>databricks-openai</code> packages. The <code>apps/</code> prefix selects the app; <code>stream=True</code> selects its streaming path. Apps requires OAuth rather than a PAT. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/query-agent">Query API</a>.</p>
+  <pre><code id="query-code">from databricks.sdk import WorkspaceClient
+from databricks_openai import DatabricksOpenAI
+
+client = DatabricksOpenAI(
+    workspace_client=WorkspaceClient(profile="YOUR_OAUTH_PROFILE")
+)
+response = client.responses.create(
+    model="apps/YOUR_APP_NAME",
+    input=[{
+        "role": "user",
+        "content": "Use count_words on: deploy then run",
+    }],
+)
+print(response.output_text)</code></pre>
+  <p>Optional identity exercise: follow the official <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#verify-user-authorization">whoami check</a>, then test an allowed and denied data request with two users. Do not infer per-user enforcement from your local developer session.</p>
+
+  <h2 id="practice">8. Diagnose the failure</h2>
+  <p>Give a cause and a correction before opening each answer.</p>
+  <div class="scenario"><strong>A.</strong> Your Git revision and workspace files contain a new tool, but the app behaves exactly as before. Bundle deployment succeeded.</div>
+  <details><summary>Reveal A</summary><p>Check whether the app was restarted through <code>bundle run</code>. Bundle deployment uploads files and configures resources; it does not start the updated app. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial">Deployment sequence</a>.</p></details>
+  <div class="scenario"><strong>B.</strong> Two users with different table access receive the same privileged results. Both have permission to use the app.</div>
+  <details><summary>Reveal B</summary><p>Inspect the downstream identity. App authorization uses shared service-principal grants. For user-specific results, use user authorization, suitable scopes, and request-time credentials; test for the documented fallback. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Identity choice</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#verify-user-authorization">Fallback check</a>.</p></details>
+  <div class="scenario"><strong>C.</strong> CI committed <code>uv.lock</code>, but the app build resolves packages through pip.</div>
+  <details><summary>Reveal C</summary><p>Check for <code>requirements.txt</code>. It takes precedence. For the uv path, retain the project file and lockfile and remove the obsolete requirements file after confirming all needed dependencies are declared. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/dependencies">Installer selection</a>.</p></details>
+  <div class="scenario"><strong>D.</strong> A colleague sees a Logged Model associated with the app's traces and assumes its ID identifies the deployed model artifact.</div>
+  <details><summary>Reveal D</summary><p>Inspect what that Logged Model represents. It can be a metadata record linked to an external Git revision. Its existence does not establish that application source was packaged inside it or deployed through the model registry. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/track-prompts-app-versions">Application-version tracking</a>.</p></details>
+  <div class="scenario"><strong>E.</strong> The app's chat UI shows yesterday's conversation, so the team assumes the agent can recover an unfinished tool workflow automatically.</div>
+  <details><summary>Reveal E</summary><p>Persisted chat messages establish history storage. They do not by themselves establish workflow-state recovery. Inspect how the next request reconstructs agent state and which store holds unfinished work. This distinction follows from the chat template's documented persistence scope. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/chat-app">Chat history</a>.</p></details>
+  <p>Tomorrow, explain without notes why <code>CAN USE</code>, an OAuth scope, and a table grant answer different questions. Then reconstruct the deploy-and-run sequence.</p>
+  <p><strong>Primary reading:</strong> <a href="https://docs.databricks.com/aws/en/agents/custom-agents/author-agent">Author an agent and deploy it on Databricks Apps</a>. Pair it with <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication">agent authentication</a>. Sources checked September 29, 2026. Academy material remains sign-in gated; this lesson makes no unverified Academy claims.</p>
+  <p>Send the agent your A–E diagnoses or questions about your own deployment. Related lessons: <a href="0005-batch-inference-and-mcp.html">MCP</a>, <a href="0006-ci-cd-for-ai-workflows.html">CI/CD</a>, and <a href="0007-model-packaging-and-registration.html">Model Serving packaging</a>.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom agents on Databricks Apps reference</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Custom agents</div>
+  <h1>Agents on Apps</h1>
+  <table>
+    <thead><tr><th>Decision</th><th>Recall</th></tr></thead>
+    <tbody>
+      <tr><td>Where does it run?</td><td>An app container calls model and data services. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/key-concepts">Architecture</a>.</td></tr>
+      <tr><td>Handler interface</td><td><code>@invoke()</code> and <code>@stream()</code> functions behind <code>AgentServer</code>. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/migrate-agent-to-apps">Migration</a>.</td></tr>
+      <tr><td>Entry permission</td><td><code>CAN USE</code> allows interaction with the app. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/permissions">Permissions</a>.</td></tr>
+      <tr><td>Downstream identity</td><td>App authorization for shared access; user authorization for caller-specific policies. Scopes restrict API usage; grants still control data access. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth">Authorization</a>.</td></tr>
+      <tr><td>Missing user token</td><td>The documented helper can fall back to app identity. Verify with two users. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication#verify-user-authorization">Identity check</a>.</td></tr>
+      <tr><td>Runtime configuration</td><td><code>app.yaml</code> defines execution; resources belong in the bundle or UI. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime">Execution</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources">resources</a>.</td></tr>
+      <tr><td>Dependencies</td><td><code>requirements.txt</code> selects pip first. Otherwise use <code>pyproject.toml</code> plus <code>uv.lock</code>. <a href="https://docs.databricks.com/aws/en/dev-tools/databricks-apps/dependencies">Install rules</a>.</td></tr>
+      <tr><td>Client query</td><td>OAuth; <code>responses.create(model="apps/NAME", input=...)</code>, or <code>POST /responses</code>. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/query-agent">API</a>.</td></tr>
+      <tr><td>MLflow</td><td>Traces and evaluation evidence; Logged Models can track external code revisions. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/concepts">Data model</a>.</td></tr>
+      <tr><td>Persistent conversation</td><td>Enable the template's database-backed history. Default history is in memory. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/chat-app">Chat state</a>.</td></tr>
+    </tbody>
+  </table>
+  <pre><code>databricks bundle validate
+databricks bundle deploy
+databricks bundle run YOUR_APP_RESOURCE_KEY</code></pre>
+  <p>Deploy uploads and configures. Run starts or restarts. <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial">Bundle workflow</a>.</p>
+  <p class="small">Return to <a href="../lessons/0008-custom-agents-on-databricks-apps.html">Lesson 8, its tool lab, and practice scenarios</a>. Checked September 29, 2026.</p>
+</main>
+</body>
+</html>

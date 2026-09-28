@@ -112,6 +112,33 @@
 - [MLflow Tracing overview](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview)
   Runtime execution evidence, distinct from logging an executable model package.
 
+### Custom agents on Databricks Apps
+
+- [Author an agent and deploy it on Databricks Apps](https://docs.databricks.com/aws/en/agents/custom-agents/author-agent)
+  AgentServer, local tools, current template setup, release commands, and LLM routing.
+- [Authentication for agents](https://docs.databricks.com/aws/en/agents/custom-agents/agent-authentication)
+  Apps resource grants, request-time user clients, and checks for fallback to app identity.
+- [Query an agent deployed on Databricks](https://docs.databricks.com/aws/en/agents/custom-agents/query-agent)
+  OAuth, the apps/ client prefix, the Responses route, and streaming requests.
+- [Key concepts in Databricks Apps](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/key-concepts)
+  App runtime, identity, and interaction with other Databricks services.
+- [Manage app dependencies](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/dependencies)
+  pip versus uv selection, lockfiles, and dependency declarations.
+- [Configure app execution](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime)
+  Start commands and environment variables in app.yaml.
+- [Add resources to an app](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/resources)
+  Resource references and grants for the app service principal.
+- [Configure app permissions](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/permissions)
+  CAN USE versus CAN MANAGE, separate from downstream data authorization.
+- [Manage apps using Declarative Automation Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)
+  Resource definitions and the validate, deploy, and run workflow.
+- [Build and share an agent chat UI](https://docs.databricks.com/aws/en/agents/custom-agents/chat-app)
+  Optional Lakebase history and feedback persistence.
+- [MLflow GenAI concepts and data model](https://docs.databricks.com/aws/en/mlflow3/genai/concepts)
+  Traces, evaluation, and app-version metadata linked to external source code.
+- [Migrate to Unity Gateway](https://docs.databricks.com/aws/en/ai-gateway/migrate-to-unity-gateway)
+  Current model API permissions and Apps behavior when legacy endpoint access is disabled.
+
 ## Gaps
 
 - The Academy catalog is sign-in gated, so the current availability and exact Academy URLs for the guide's course titles were not independently confirmed on September 23, 2026. This does not block the study plan because the learner has completed the recommended courses and the exam guide defines the scope.
