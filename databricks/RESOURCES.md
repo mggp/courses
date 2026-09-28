@@ -82,6 +82,16 @@
   Automatic lineage between prompt versions and MLflow application versions.
 - [Workload identity federation for CI/CD](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation-provider)
   Recommended secretless authentication pattern for automated deployment identities.
+- [MLflow API reference for GenAI](https://docs.databricks.com/aws/en/mlflow3/genai/api-reference)
+  Databricks index of evaluation, monitoring, scorer lifecycle, dataset, prompt, and app-version APIs.
+- [Upstream MLflow scorer versioning](https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/)
+  Primary API documentation for experiment-scoped scorer versions, supported scorer types, fixed-version loading, and deletion. The Databricks API reference links to these MLflow APIs.
+- [Manage production scorers](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers)
+  Registered, active, stopped, and deleted states plus immutable sampling-configuration updates.
+- [Align LLM judges with human feedback](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/align-judges)
+  Expert correction and judge alignment workflow. Use when qualifying a scorer for release decisions.
+- [Backfill historical traces with scorers](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/backfill-scorers)
+  Apply candidate scorers to earlier production traces for side-by-side validation.
 
 ## Gaps
 

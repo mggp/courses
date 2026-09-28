@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CI/CD and prompt lifecycle decision sheet</title>
+  <title>CI/CD, prompts, and scorers decision sheet</title>
   <link rel="stylesheet" href="../assets/course.css">
 </head>
 <body>
 <main>
   <div class="eyebrow">Quick reference · Exam section 4</div>
-  <h1>CI/CD and prompt lifecycle</h1>
+  <h1>CI/CD, prompts, and scorers</h1>
   <p class="lede">Identify the changing artifact first. That tells you whether the action is a Git merge, bundle deployment, prompt alias move, index sync, or evaluation gate.</p>
 
   <h2>Artifact to action</h2>
@@ -19,7 +19,7 @@
       <tr><td>Agent code and Databricks resource configuration</td><td>Git commit plus bundle definition</td><td>Validate and deploy a Declarative Automation Bundle to a target. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</td></tr>
       <tr><td>Prompt</td><td>Immutable MLflow Prompt Registry version</td><td>Evaluate the numbered version, then point the target alias at it. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</td></tr>
       <tr><td>Retrieval documents or rows</td><td>Source Delta table or view and AI Search index state</td><td>Update the source; sync a triggered index or let a continuous index update. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</td></tr>
-      <tr><td>Quality decision</td><td>Evaluation dataset, scorers, traces, and results</td><td>Compare candidate and baseline with the same evaluation setup before promotion. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Source</a>.</td></tr>
+      <tr><td>Quality policy and decision</td><td>Pinned scorer, judge model, versioned dataset, thresholds, traces, and results</td><td>Compare candidate and baseline under the same policy before promotion. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">Prompt evaluation</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/api-reference">scorer API</a>.</td></tr>
     </tbody>
   </table>
 
@@ -46,6 +46,19 @@
     <li>Monitor production traces, quality, latency, errors, and cost. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</li>
   </ol>
 
+  <h2>Scorer changes need their own gate</h2>
+  <table>
+    <thead><tr><th>Change</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Judge instructions, model, or output type</td><td>Register a new scorer version under the same experiment and name. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">Source</a>.</td></tr>
+      <tr><td>Production sample rate or trace filter</td><td>Use <code>Scorer.update()</code>. This does not change scorer logic. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</td></tr>
+      <tr><td>Reproducible prompt gate</td><td>Load a fixed scorer with <code>get_scorer(version=...)</code>. Never rely on latest. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">Source</a>.</td></tr>
+      <tr><td>Candidate-scorer validation</td><td>Compare incumbent and candidate against the same expert labels and historical traces. Align judges to human feedback when needed. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/align-judges">Alignment</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/backfill-scorers">backfill</a>.</td></tr>
+      <tr><td>Production replacement</td><td>Use distinct assessment names for any overlap, then stop the old scorer and start the approved replacement. Stop preserves registration; delete removes it. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>Four-way check.</strong> Run current prompt/current scorer, candidate prompt/current scorer, current prompt/candidate scorer, and candidate prompt/candidate scorer. Promote the prompt against the already-approved scorer. Promote the scorer separately.</p>
+
   <h2>Fast eliminations</h2>
   <ul>
     <li>A branch merge does not give a deployed app a movable prompt alias. Use Prompt Registry for the exam's prompt-promotion requirement. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Source</a>.</li>
@@ -54,6 +67,8 @@
     <li>A successful deployment is not a quality gate. Deployment and MLflow evaluation answer different questions. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai">evaluation</a>.</li>
     <li>A triggered AI Search index is not fresh until you sync it. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</li>
     <li>An alias is mutable. Record the resolved version when reproducibility matters. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">Source</a>.</li>
+    <li>A scorer is part of the quality policy. Pin its version together with the evaluation dataset and acceptance thresholds.</li>
+    <li><code>Scorer.update()</code> changes sampling configuration, not the judge rubric. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</li>
   </ul>
 
   <p class="small">Return to <a href="../lessons/0006-ci-cd-for-ai-workflows.html">lesson 0006</a>.</p>

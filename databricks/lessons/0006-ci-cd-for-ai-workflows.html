@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lesson 6: CI/CD for AI workflows and prompts</title>
+  <title>Lesson 6: CI/CD for AI workflows, prompts, and scorers</title>
   <link rel="stylesheet" href="../assets/course.css">
 </head>
 <body>
 <main>
-  <div class="eyebrow">Lesson 0006 · Section 4 · About 28 minutes</div>
-  <h1>CI/CD for AI workflows and prompts</h1>
-  <p class="lede">An AI release is not one artifact. Code, Databricks resources, prompts, retrieval data, and evaluation evidence can change on different schedules. The useful skill is knowing what to version, what to promote, and what to test before one environment can point at the next candidate. <a href="../references/exam-guide.md">Exam objectives</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Databricks CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">MLflow Prompt Registry</a>.</p>
+  <div class="eyebrow">Lesson 0006 · Section 4 · About 34 minutes</div>
+  <h1>CI/CD for AI workflows, prompts, and scorers</h1>
+  <p class="lede">An AI release is not one artifact. Code, Databricks resources, prompts, retrieval data, scoring policy, and evaluation evidence can change on different schedules. The useful skill is knowing what to version, what to promote, and what to test before one environment can point at the next candidate. <a href="../references/exam-guide.md">Exam objectives</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Databricks CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry">MLflow Prompt Registry</a>.</p>
 
-  <div class="objective"><strong>Your win.</strong> Given a development, staging, and production scenario, choose the release mechanism for each artifact. Then design a quality gate that can reject a prompt or agent change without confusing source control, deployment, indexing, and evaluation.</div>
+  <div class="objective"><strong>Your win.</strong> Given a development, staging, and production scenario, choose the release mechanism for each artifact. Then design a quality gate that can reject a prompt, scorer, or agent change without confusing source control, deployment, indexing, and evaluation.</div>
 
   <h2>The model to keep in your head</h2>
   <table>
@@ -21,10 +21,10 @@
       <tr><td>Agent code, notebooks, tests, and bundle configuration</td><td>Git repository</td><td>Review and merge code, then validate and deploy a Declarative Automation Bundle to the target. Databricks recommends bundles for CI/CD and uses them to define source files and resources as one deployable project. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>; <a href="https://docs.databricks.com/aws/en/dev-tools/bundles">bundle concepts</a>.</td></tr>
       <tr><td>Prompt template</td><td>MLflow Prompt Registry in Unity Catalog</td><td>Create an immutable version, evaluate it, then move an alias such as <code>staging</code> or <code>production</code> to that version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/create-and-edit-prompts">Versions</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">aliases and promotion</a>.</td></tr>
       <tr><td>Documents or rows used for retrieval</td><td>Source Delta table or view plus an AI Search index</td><td>Update the source and sync the index. Continuous indexes update automatically; triggered indexes require a UI, SDK, or REST sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</td></tr>
-      <tr><td>Quality evidence</td><td>MLflow experiment, evaluation dataset, traces, and evaluation runs</td><td>Run the same dataset and scorers against the candidate and baseline, compare results, and let the release process enforce the team's acceptance rule. Databricks documents evaluation during development or a release process and recommends consistent datasets for prompt comparison. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">MLflow 3 for GenAI</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">prompt evaluation</a>.</td></tr>
+      <tr><td>Quality policy and evidence</td><td>Scorer version, judge model, evaluation dataset, acceptance thresholds, traces, and evaluation runs</td><td>Pin the scorer and dataset versions, run the candidate and baseline under the same policy, and compare results. Databricks documents evaluation during development or a release process and recommends consistent datasets for prompt comparison. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">MLflow 3 for GenAI</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">prompt evaluation</a>; <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">scorer versioning</a>.</td></tr>
     </tbody>
   </table>
-  <p class="callout"><strong>The central distinction.</strong> A Git merge promotes source. A bundle deployment promotes Databricks code and resource definitions. An alias reassignment promotes a prompt version. An index sync promotes changed retrieval data into the searchable index. None substitutes for the others.</p>
+  <p class="callout"><strong>The central distinction.</strong> A Git merge promotes source. A bundle deployment promotes Databricks code and resource definitions. An alias reassignment promotes a prompt version. An index sync promotes changed retrieval data into the searchable index. A pinned scorer version fixes the quality policy used by the gate. None substitutes for the others.</p>
 
   <h2>A release has two loops</h2>
   <p>For this lesson, continuous integration means that every candidate change runs automated checks. Continuous delivery means the passing candidate is ready for a controlled release, which may still require approval. The exam's “gated release process” is this second shape: automation proves readiness, then an authorized promotion changes the production reference. The Databricks CI/CD overview defines the broader practice as short, frequent development and delivery cycles built around automated build, test, deployment, and monitoring. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">Source</a>.</p>
@@ -64,6 +64,50 @@
       <tr><td>Production</td><td>Run selected scorers on production traces and watch quality, latency, errors, and cost after release. MLflow supports production monitoring with scorers over sampled traffic. <a href="https://docs.databricks.com/aws/en/mlflow3/genai">Source</a>.</td><td>The pre-release gate. Production monitoring detects problems after exposure; it does not justify skipping the gate.</td></tr>
     </tbody>
   </table>
+
+  <h2>Release scorers before they judge releases</h2>
+  <p>A scorer defines what “good enough” means. Changing its instructions, judge model, output type, threshold, or aggregation can change which prompts pass even when the application does not change. Treat the complete quality policy as a release unit: scorer definition, judge model, evaluation dataset version, acceptance threshold, and aggregation rule.</p>
+  <p>MLflow stores supported registered scorers by experiment and name. The first registration creates version 1; registering another scorer with the same name creates the next version. Existing versions remain available, and <code>get_scorer(version=...)</code> loads a fixed definition. Pin that version in regression tests and promotion workflows. Loading the latest version is suitable only when the workflow should adopt scorer changes automatically. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">Source</a>.</p>
+  <p>Do not confuse a definition change with <code>Scorer.update()</code>. Databricks documents <code>update()</code> for an active production scorer's sampling configuration, including sample rate and trace filter. To change judge instructions, model, or output type, register a new scorer version. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</p>
+
+  <h3>Qualify the new ruler</h3>
+  <ol>
+    <li>Keep the incumbent scorer pinned as the current release gate.</li>
+    <li>Create the candidate as a new scorer version rather than replacing the incumbent. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">Source</a>.</li>
+    <li>Run both versions over the same expert-labeled scorer-validation set. Examine agreement with the experts, especially false passes and false failures. Databricks supports expert corrections and alignment of built-in and custom judges to human feedback. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/align-judges">Source</a>.</li>
+    <li>Replay both versions over the same historical production traces. Databricks backfill can apply new or updated scorers to earlier traces. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/backfill-scorers">Source</a>.</li>
+    <li>Approve the scorer on its own. Then change the release configuration to pin the new version. Do not silently switch scorer versions inside a prompt comparison.</li>
+    <li>For production monitoring, run an overlap only with distinct assessment names, then stop the old scorer and start the approved replacement. Stopping keeps the registration; deleting removes it. Production scorer lifecycle management is currently Beta. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</li>
+  </ol>
+
+  <h3>Use the four-way comparison</h3>
+  <table>
+    <thead><tr><th>Prompt</th><th>Scorer</th><th>Question answered</th></tr></thead>
+    <tbody>
+      <tr><td>Current</td><td>Current</td><td>What is the stable baseline?</td></tr>
+      <tr><td>Candidate</td><td>Current</td><td>Did the prompt improve under the already-approved policy? This is the prompt-promotion gate.</td></tr>
+      <tr><td>Current</td><td>Candidate</td><td>How much did changing the scorer move the measurements?</td></tr>
+      <tr><td>Candidate</td><td>Candidate</td><td>What results should you expect after both changes are released?</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>Never move the ruler during the race.</strong> Promote the candidate prompt against the incumbent scorer. Qualify and promote the candidate scorer separately. If both change in one comparison, an apparent improvement might only mean the scorer became more permissive.</p>
+
+  <h3>Pin a scorer in the gate</h3>
+  <pre><code>from mlflow.genai import get_scorer
+
+release_scorer = get_scorer(
+    name="support_release_quality",
+    experiment_id=experiment_id,
+    version=3,  # fixed until scorer version 4 is approved
+)
+
+results = mlflow.genai.evaluate(
+    data=versioned_eval_dataset,
+    predict_fn=candidate_app,
+    scorers=[release_scorer],
+)</code></pre>
+  <p>MLflow scorer version histories currently support custom LLM judges and built-in judges. The scorer-versioning documentation does not list code-based scorers or Guidelines judges as supported; it directs Guidelines judge versioning to MLflow Prompt Registry. Keep code-based scorer source in Git and tie each evaluation result to its code revision and registered production name. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/#supported-scorers">Source</a>.</p>
+  <p>Unlike Prompt Registry, the documented scorer workflow has no environment aliases. The practical promotion mechanism is an explicit version in the release configuration. Record that version with every evaluation result so a quality time series does not silently change meaning.</p>
 
   <h2>AI Search belongs in the release plan</h2>
   <p>A prompt may expect fields or document content that the current index does not contain. For a Delta Sync index in Continuous mode, changes to the source table or view flow into the index automatically. For Triggered mode, the pipeline must call the sync operation, such as <code>index.sync()</code>, and wait until the index is ready before running retrieval tests. Standard endpoints process changed data incrementally in both modes; storage-optimized endpoints support only Triggered sync and partially rebuild on each sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</p>
@@ -143,18 +187,21 @@ mlflow.genai.set_prompt_alias(name, "production", v1.version)</code></pre>
     <li>Changing source documents without confirming index freshness before evaluation. Triggered Delta Sync indexes require an explicit sync. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Source</a>.</li>
     <li>Using one person's credentials in unattended production deployment. Databricks recommends service principals and workload identity federation for CI/CD. <a href="https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation-provider">Source</a>.</li>
     <li>Assuming a successful bundle deployment proves agent quality. Deployment and evaluation are separate gates in the documented lifecycle. <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai">GenAI evaluation</a>.</li>
+    <li>Loading the latest scorer in a reproducible release gate. Pin the approved scorer version and update that pin only after the scorer passes its own review. <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">Source</a>.</li>
+    <li>Changing a prompt and its scorer together, then crediting the prompt for a higher score. Keep the incumbent scorer as the prompt gate and use the four-way comparison to isolate both effects.</li>
+    <li>Calling <code>Scorer.update()</code> a rubric update. It changes sampling configuration, not judge instructions or model. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Source</a>.</li>
   </ol>
 
   <h2>Retrieve it from memory</h2>
-  <div class="scenario">A support agent has a new prompt, a changed retriever filter, and three new policy documents. The team uses a triggered AI Search index. The candidate passes a smoke test in staging, but no regression evaluation has run. Production currently uses prompt version 12 through the <code>production</code> alias. Describe the release order, name one component test and one end-to-end gate, and explain the fastest safe rollback if version 13 degrades answers.</div>
-  <textarea aria-label="Answer the CI/CD scenario" placeholder="Release order, component test, end-to-end gate, rollback"></textarea>
+  <div class="scenario">A support agent has prompt version 13, a changed retriever filter, and three new policy documents. The team uses a triggered AI Search index. At the same time, an engineer has loosened the release-quality judge and registered scorer version 4. Production uses prompt version 12 and scorer version 3. No regression evaluation has run. Describe the release order, the four comparisons you need, one component test, and the fastest safe rollback if version 13 degrades answers.</div>
+  <textarea aria-label="Answer the CI/CD scenario" placeholder="Release order, scorer matrix, component test, rollback"></textarea>
   <details>
     <summary>Check your answer</summary>
-    <p>Update the governed source documents, explicitly sync the triggered AI Search index, and confirm it is ready. Unit-test the changed filter construction, then run retrieval checks for known policy questions. Evaluate prompt version 13 and the current baseline on the same evaluation dataset and scorers. If the candidate meets the team's acceptance rule and approval is granted, move the <code>production</code> alias to version 13. Preserve version 12 under a rollback alias first. If production quality drops, point <code>production</code> back to version 12. A smoke test alone does not measure answer quality. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Index sync</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">evaluation</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#alias-strategies">rollback aliases</a>.</p>
+    <p>Update the governed documents, explicitly sync the triggered AI Search index, and confirm it is ready. Unit-test the filter construction, then run retrieval checks for known policy questions. Hold scorer version 3 fixed as the prompt-promotion gate. Run prompt 12 with scorer 3, prompt 13 with scorer 3, prompt 12 with scorer 4, and prompt 13 with scorer 4 on the same versioned dataset. Promote prompt 13 only if it passes scorer 3 and the other gates. Qualify scorer 4 separately against expert labels and historical traces before changing the pinned gate version. Preserve prompt 12 under a rollback alias before moving <code>production</code>; rollback points <code>production</code> back to version 12. <a href="https://docs.databricks.com/aws/en/ai-search/create-ai-search#update-an-ai-search-index">Index sync</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/evaluate-prompts">prompt evaluation</a>; <a href="https://mlflow.org/docs/latest/genai/eval-monitor/scorers/versioning/">scorer versions</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps#alias-strategies">rollback aliases</a>.</p>
   </details>
 
   <h2>Primary reading</h2>
-  <p>Read <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Use prompts in deployed applications</a> first. It is the closest match to the exam's promotion scenario. Then use <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD on Databricks</a> for the surrounding software pipeline and keep the <a href="../reference/ci-cd-and-prompt-lifecycle.html">CI/CD and prompt lifecycle decision sheet</a> beside your practice questions.</p>
+  <p>Read <a href="https://docs.databricks.com/aws/en/mlflow3/genai/prompt-version-mgmt/prompt-registry/use-prompts-in-deployed-apps">Use prompts in deployed applications</a> first. It is the closest match to the exam's promotion scenario. Use <a href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/manage-production-scorers">Manage production scorers</a> for scorer lifecycle operations and <a href="https://docs.databricks.com/aws/en/dev-tools/ci-cd">CI/CD on Databricks</a> for the surrounding software pipeline. Keep the <a href="../reference/ci-cd-and-prompt-lifecycle.html">CI/CD, prompts, and scorers decision sheet</a> beside your practice questions.</p>
   <p class="small">Ask your teacher to grade your retrieval answer or generate a harder scenario involving separate workspaces, a failed index sync, and an evaluation regression.</p>
 </main>
 </body>
