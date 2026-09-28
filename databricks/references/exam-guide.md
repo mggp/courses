@@ -19,6 +19,13 @@ Search for semantic similarity searches, Model Serving for deploying models and 
 for managing solution lifecycle, and Unity Catalog for data governance. Individuals who pass this
 exam can be expected to build and deploy performant RAG applications and LLM chains that take
 full advantage of Databricks and its toolset.
+The exam covers:
+    - Design Applications – 14%
+    - Data Preparation – 14%
+    - Application Development – 30%
+    - Assembling and Deploying Apps – 22%
+    - Governance – 8%
+    - Evaluation and Monitoring – 12%
 ## About the Exam
 ● Number of scored questions: 45 multiple-choice or multiple-selection items*
 ● Time Limit: 90 minutes
