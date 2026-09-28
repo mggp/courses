@@ -93,6 +93,25 @@
 - [Backfill historical traces with scorers](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/backfill-scorers)
   Apply candidate scorers to earlier production traces for side-by-side validation.
 
+### Model packaging and registration
+
+- [Log and register AI agents](https://docs.databricks.com/aws/en/agents/agent-framework/log-agent)
+  Code-based logging, model configuration, signatures, remote-resource declarations, and registration.
+- [Log, load, and register MLflow models](https://docs.databricks.com/aws/en/mlflow/models)
+  Model flavors, environment files, logged-model URIs, and registration argument order.
+- [Track and compare models using MLflow Logged Models](https://docs.databricks.com/aws/en/mlflow/logged-model)
+  MLflow 3 model IDs and associated parameters, metrics, and evaluation evidence.
+- [Log model dependencies](https://docs.databricks.com/aws/en/mlflow/log-model-dependencies)
+  Package versions, custom code paths, dependency inference, and serving environments.
+- [Package custom artifacts for Model Serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts)
+  Explicit artifact inclusion and loading through context.artifacts.
+- [Author an agent on Model Serving](https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/author-agent-model-serving)
+  ResponsesAgent input/output conversion and replica-local state considerations.
+- [Agent authentication on Model Serving](https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/agent-authentication-model-serving)
+  Resource declarations, automatic authentication, and per-user authorization.
+- [MLflow Tracing overview](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview)
+  Runtime execution evidence, distinct from logging an executable model package.
+
 ## Gaps
 
 - The Academy catalog is sign-in gated, so the current availability and exact Academy URLs for the guide's course titles were not independently confirmed on September 23, 2026. This does not block the study plan because the learner has completed the recommended courses and the exam guide defines the scope.

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model packaging and registration reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Quick reference · Section 4</div>
+  <h1>Package, register, deploy</h1>
+  <pre><code>mlflow.register_model(model_uri, name)
+# Source package first. Destination registered name second.
+
+mlflow.set_registry_uri("databricks-uc")
+version = mlflow.register_model(
+    model_uri=info.model_uri,
+    name="catalog.schema.model",
+)</code></pre>
+  <p><a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Unity Catalog registration</a>.</p>
+  <table>
+    <thead><tr><th>Remember</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>load_context</code> / <code>predict</code></td><td>Reusable initialization / per-call processing. Explicitly call your input and output helpers. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Source</a>.</td></tr>
+      <tr><td><code>python_model</code></td><td>Wrapper implementation, or its source file for code-based logging. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">Source</a>.</td></tr>
+      <tr><td><code>artifacts</code> / <code>resources</code></td><td>Packaged files / declared remote dependencies. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts">Files</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/agent-authentication-model-serving">resources</a>.</td></tr>
+      <tr><td><code>code_paths</code> / <code>pip_requirements</code></td><td>Custom modules / environment requirements. Include full <code>mlflow</code> for serving. <a href="https://docs.databricks.com/aws/en/mlflow/log-model-dependencies">Source</a>.</td></tr>
+      <tr><td>Input example / signature</td><td>A concrete request / a schema describing the public contract. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent#infer-model-signature-during-logging">Source</a>.</td></tr>
+      <tr><td><code>log_model(name=...)</code></td><td>Creates a Logged Model in MLflow 3. <a href="https://docs.databricks.com/aws/en/mlflow/logged-model">Source</a>.</td></tr>
+      <tr><td><code>registered_model_name</code></td><td>Requests registration as part of logging. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Source</a>.</td></tr>
+      <tr><td>Tracing</td><td>Records execution evidence such as retrievals and model calls. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Source</a>.</td></tr>
+      <tr><td>Deployment</td><td>Creates or updates the running endpoint separately. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/deploy-agent">Source</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><code>models:/&lt;model_id&gt;</code> can identify an unregistered Logged Model. <code>models:/catalog.schema.model/7</code> identifies registered version 7. <a href="https://docs.databricks.com/aws/en/mlflow/models">Logged URIs</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">registered URIs</a>.</p>
+  <p class="small">Return to <a href="../lessons/0007-model-packaging-and-registration.html">Lesson 7 and its runnable lab</a>. Checked September 28, 2026.</p>
+</main>
+</body>
+</html>

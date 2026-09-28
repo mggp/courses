@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 7: Model packaging and registration</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Lesson 0007 · Section 4 · 12-minute core + lab</div>
+  <h1>Model packaging and registration</h1>
+  <p class="lede">Your RAG chain works in a notebook. What must travel with it so another process can run it, and what does Unity Catalog add?</p>
+  <div class="objective"><strong>Your win.</strong> Explain the package boundary, place input and output processing correctly, and register a logged model without confusing names, URIs, or deployment.</div>
+  <p class="small">Scope: pyfunc processing, RAG packaging components, and Unity Catalog registration in <a href="../references/exam-guide.md">exam section 4</a>. Read the core, then do the lab and retrieval questions. <a href="../reference/model-packaging-and-registration.html">Printable reference</a>.</p>
+
+  <h2 id="lifecycle">1. Logging, registration, deployment</h2>
+  <table>
+    <thead><tr><th>Operation</th><th>Result</th><th>Use it when</th></tr></thead>
+    <tbody>
+      <tr><td><code>log_model(...)</code></td><td>An executable MLflow model package. MLflow 3 also creates a <code>LoggedModel</code> with its own ID and associated metadata.</td><td>You want to reload, compare, or evaluate a candidate. Registration is a subsequent option. <a href="https://docs.databricks.com/aws/en/mlflow/logged-model">Logged Models</a>.</td></tr>
+      <tr><td><code>register_model(...)</code></td><td>A version under a registered model name in Unity Catalog, creating the named model if needed.</td><td>You want governed access and model lifecycle management. Registration alone does not put it into production traffic. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Registry</a>.</td></tr>
+      <tr><td>Deploy a chosen version</td><td>A serving endpoint running the application. For a compatible agent, <code>agents.deploy(model_name, model_version)</code> performs deployment.</td><td>An application must call it online. Register first for this Model Serving agent workflow. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/deploy-agent">Deployment</a>.</td></tr>
+    </tbody>
+  </table>
+  <p><code>load_model(uri)</code> loads an existing package for inference. It does not register it. <code>save_model(...)</code> writes the model to a filesystem location instead of logging it to the tracking server. These are useful for local execution or exporting a package. <a href="https://docs.databricks.com/aws/en/mlflow/models">Log, load, and save</a>.</p>
+  <p class="callout">For new agent applications, Databricks currently recommends Databricks Apps. This lesson studies the MLflow packaging and Model Serving workflow explicitly covered by the exam. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/deploy-agent">Current deployment guidance</a>.</p>
+
+  <h2 id="pyfunc">2. Pyfunc owns the request boundary</h2>
+  <p>A custom <code>mlflow.pyfunc.PythonModel</code> lets you package preprocessing, model calls, branching, and postprocessing together. Put reusable initialization in <code>load_context(self, context)</code>; put per-call work in <code>predict(self, context, model_input, params=None)</code>. Initialization happens when an instance loads, so “once” does not mean once across every serving replica. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Custom Python models</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/author-agent-model-serving#deployment-considerations">Replica behavior</a>.</p>
+  <pre><code>load_context: load packaged files; initialize reusable components
+
+predict:
+    incoming request
+      → validate and normalize input
+      → retrieve evidence → build prompt → call LLM
+      → parse answer and format citations
+      → return the public output structure</code></pre>
+  <p>This is an illustrative RAG flow. Databricks separates query processing, retrieval, prompt augmentation, generation, and post-processing when diagnosing RAG quality. <a href="https://docs.databricks.com/aws/en/agents/tutorials/ai-cookbook/quality-rag-chain">RAG components</a>.</p>
+  <p>Helpers named <code>format_inputs</code> or <code>format_outputs</code> are your code. Call them from <code>predict</code>; their names alone do not make them execute. Input processing placed only in a notebook cell is absent from the wrapper's prediction path. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">Wrapper example</a>.</p>
+  <p>For generic custom Python behavior, use <code>PythonModel</code>. For an existing supported LangChain chain, consider its native logging flavor. For a conversational agent needing Databricks chat and streaming integration, Databricks recommends <code>ResponsesAgent</code>, whose request and response schemas differ from this lesson's tabular wrapper. It can wrap an existing framework and gets automatic signature inference. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent#code-based-logging-with-langchain">LangChain logging</a>; <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/author-agent-model-serving">ResponsesAgent</a>.</p>
+
+  <h2 id="contents">3. What MLflow logs with a RAG model</h2>
+  <p>There is no universal “RAG contents” list independent of your logging call. A flavor is the format and loading convention for a model. The same application also has configuration, files, Python dependencies, and remote dependencies. <a href="https://docs.databricks.com/aws/en/mlflow/models">MLflow model formats</a>; <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">Agent logging</a>.</p>
+  <table>
+    <thead><tr><th>Item</th><th>What is captured</th></tr></thead>
+    <tbody>
+      <tr><td>Executable chain or wrapper</td><td>The implementation you log. Databricks recommends Models from Code for agents: a Python source file plus an environment package list. <code>model_config</code> can capture configuration such as a prompt template, retrieval settings, and endpoint names when you supply it. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">Code and configuration</a>.</td></tr>
+      <tr><td>Environment and helper modules</td><td><code>requirements.txt</code> and <code>conda.yaml</code> describe dependencies. Include custom modules with <code>code_paths</code>; pin needed package versions. Dependency inference does not remove the need to check the result. <a href="https://docs.databricks.com/aws/en/mlflow/models">Environment files</a>; <a href="https://docs.databricks.com/aws/en/mlflow/log-model-dependencies">Dependency controls</a>.</td></tr>
+      <tr><td>Local supporting files</td><td>Files explicitly supplied through <code>artifacts={...}</code>, such as weights, a tokenizer cache, or a lookup file. Load them through <code>context.artifacts["key"]</code>, rather than the original notebook path. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts">Packaged artifacts</a>.</td></tr>
+      <tr><td>Public input/output contract</td><td>The <code>input_example</code> is a concrete request. The signature describes the schema; infer or specify it during logging. It describes your wrapper's external inputs and outputs, not each internal LLM call. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent#infer-model-signature-during-logging">Agent signatures</a>.</td></tr>
+      <tr><td>Remote services</td><td><code>resources</code> declares services such as an AI Search index or serving endpoint. It supports deployment authentication. This is a declaration of a dependency, not a snapshot of that service's contents. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/agent-authentication-model-serving">Resource authentication</a>.</td></tr>
+      <tr><td>Experiment evidence</td><td>Parameters and metrics can be associated with a Logged Model. Evaluation supplies quality measurements separately. A successful <code>log_model</code> call does not establish groundedness or retrieval quality. <a href="https://docs.databricks.com/aws/en/mlflow/logged-model">Models and evaluation evidence</a>.</td></tr>
+    </tbody>
+  </table>
+  <p class="callout"><strong>Reasoning from that boundary.</strong> If your chain queries a hosted LLM and an AI Search index, logging their names does not copy the LLM weights, index, or source documents. The deployed code still calls those services. A small local knowledge file explicitly supplied as an artifact is a different case: that file travels with the package. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">External resources</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts">File packaging</a>.</p>
+  <p><strong>Logging a model versus logging execution.</strong> MLflow Tracing records request execution, including intermediate retrievals, tool calls, inputs, outputs, and timing. Enable an appropriate tracing integration or instrumentation. Packaging a model is not evidence that every future execution is traced. <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Tracing overview</a>.</p>
+
+  <h2 id="register">4. Register source first, name second</h2>
+  <pre><code>registered = mlflow.register_model(
+    model_uri=info.model_uri,
+    name="main.training.support_rag",
+)
+
+# Same first two arguments, positionally:
+registered = mlflow.register_model(
+    info.model_uri, "main.training.support_rag"
+)</code></pre>
+  <p>These are alternatives; running both creates two registrations. The first argument identifies the source package. The second is the destination registered model name. Use the returned <code>registered.version</code> rather than guessing the next version. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">Registration examples</a>; <a href="https://docs.databricks.com/aws/en/agents/agent-framework/deploy-agent">Using the returned version</a>.</p>
+  <table>
+    <thead><tr><th>Reference</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>runs:/&lt;run_id&gt;/rag</code></td><td>A run's logged package at path <code>rag</code>.</td></tr>
+      <tr><td><code>models:/&lt;model_id&gt;</code></td><td>An MLflow 3 Logged Model. This form does not imply registry membership.</td></tr>
+      <tr><td><code>main.training.support_rag</code></td><td>A Unity Catalog registered model name.</td></tr>
+      <tr><td><code>models:/main.training.support_rag/3</code></td><td>Registered version 3.</td></tr>
+      <tr><td><code>models:/main.training.support_rag@Champion</code></td><td>The version currently assigned to an alias.</td></tr>
+    </tbody>
+  </table>
+  <p class="small">Sources: <a href="https://docs.databricks.com/aws/en/mlflow/models#api-commands">logged model URIs</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle">registered versions and aliases</a>.</p>
+  <p>In MLflow 3, <code>log_model(name="rag", ...)</code> names the logged model. <code>registered_model_name="main.training.support_rag"</code> additionally registers during logging. Use separate logging and registration when you want to select an evaluated candidate first. Older examples commonly use <code>artifact_path="rag"</code>. Prefer the returned <code>info.model_uri</code> over constructing a URI by hand. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle#register-a-model-to-unity-catalog-with-automatically-inferred-signature">Log-and-register examples</a>; <a href="https://docs.databricks.com/aws/en/mlflow/logged-model">MLflow 3 model identity</a>.</p>
+
+  <h2 id="lab">5. Lab: prove that the package travels</h2>
+  <p>This exercise uses a tiny keyword lookup and returns evidence verbatim. It intentionally has no LLM, embedding model, or AI Search service. The target skill is packaging and reloading the complete input/output path. A real RAG implementation would replace the lookup with retrieval and generation.</p>
+  <p>Run in a Databricks Python notebook with MLflow 3 and pandas installed. The example uses <code>artifacts</code> and <code>load_context</code> as documented by Databricks. It pins the full <code>mlflow</code> package explicitly for serving compatibility. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts">Artifacts</a>; <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code#log-your-python-function-model">Full MLflow requirement</a>.</p>
+  <pre><code id="lab-code">import json
+import tempfile
+from pathlib import Path
+
+import cloudpickle
+import mlflow
+import pandas as pd
+
+class PackagingDemo(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        self.facts = json.loads(
+            Path(context.artifacts["facts"]).read_text()
+        )
+
+    def predict(self, context, model_input, params=None):
+        rows = []
+        for question in model_input["question"]:
+            # Preprocessing, including a content rule beyond schema types.
+            query = question.strip().lower()
+            if not query:
+                raise ValueError("question must not be blank")
+            # Toy lookup. This is not semantic retrieval or generation.
+            hit = self.facts.get(query)
+            # Postprocessing defines the caller's output structure.
+            rows.append({
+                "answer": hit["text"] if hit else "No evidence found.",
+                "source": hit["source"] if hit else "",
+            })
+        return pd.DataFrame(rows, columns=["answer", "source"])
+
+example = pd.DataFrame({"question": ["  PACKAGING  ", "unknown"]})
+expected = pd.DataFrame({
+    "answer": ["This fact traveled with the model.", "No evidence found."],
+    "source": ["demo-note", ""],
+})
+
+with tempfile.TemporaryDirectory() as folder:
+    facts_path = Path(folder) / "facts.json"
+    facts_path.write_text(json.dumps({
+        "packaging": {
+            "text": "This fact traveled with the model.",
+            "source": "demo-note",
+        }
+    }))
+    with mlflow.start_run():
+        info = mlflow.pyfunc.log_model(
+            name="packaging_demo",
+            python_model=PackagingDemo(),
+            artifacts={"facts": str(facts_path)},
+            input_example=example,
+            signature=mlflow.models.infer_signature(example, expected),
+            pip_requirements=[
+                f"mlflow=={mlflow.__version__}",
+                f"pandas=={pd.__version__}",
+                f"cloudpickle=={cloudpickle.__version__}",
+            ],
+        )
+
+# The original temporary facts file has now been deleted.
+loaded = mlflow.pyfunc.load_model(info.model_uri)
+actual = loaded.predict(example)
+pd.testing.assert_frame_equal(actual, expected)
+print(info.model_uri)
+display(actual)</code></pre>
+  <p>Expected result: the padded uppercase input finds the packaged fact, and the unknown input returns an empty source. The assertion checks both branches after reloading, with the original file gone. Object-based logging keeps this lab in one cell; use the recommended <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent#code-based-logging">Models from Code approach</a> for an agent project.</p>
+  <p>In a second cell, choose an existing catalog and schema where you may create models. New registrations require <code>USE CATALOG</code>, <code>USE SCHEMA</code>, and <code>CREATE MODEL</code>. New UC model versions need a signature. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle#train-and-register-unity-catalog-compatible-models">Prerequisites</a>.</p>
+  <pre><code id="registration-code">mlflow.set_registry_uri("databricks-uc")
+model_name = "YOUR_CATALOG.YOUR_SCHEMA.packaging_demo"
+registered = mlflow.register_model(
+    model_uri=info.model_uri,
+    name=model_name,
+)
+version_uri = f"models:/{model_name}/{registered.version}"
+reloaded = mlflow.pyfunc.load_model(version_uri)
+pd.testing.assert_frame_equal(reloaded.predict(example), expected)
+print(model_name, registered.version)</code></pre>
+  <p>This cell creates a registry version each time it runs. Inspect the logged package's files, signature, and input example, then locate the registered version in Catalog Explorer. No serving endpoint is created by these cells. <a href="https://docs.databricks.com/aws/en/mlflow/logged-model#view-models-and-track-progress">Inspect a logged model</a>; <a href="https://docs.databricks.com/aws/en/agents/agent-framework/deploy-agent">Separate deployment step</a>.</p>
+
+  <h2 id="traps">6. Mistakes worth catching</h2>
+  <ul>
+    <li><strong>Notebook imports mistaken for dependencies.</strong> Package helper code with <code>code_paths</code> and review requirements. Ordinary Python imports in the authoring notebook are not a deployment plan. <a href="https://docs.databricks.com/aws/en/mlflow/log-model-dependencies">Dependency packaging</a>.</li>
+    <li><strong>Schema mistaken for behavior.</strong> A string-typed question can still be blank. A signature supports input enforcement; your code must implement content rules and output formatting. <a href="https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle#add-or-update-a-signature-for-an-existing-model-version">Signature enforcement</a>.</li>
+    <li><strong>Resources mistaken for credentials.</strong> Declare dependencies for automatic authentication, then Databricks verifies the deployer's access and provisions short-lived credentials. Per-user authorization requires the separate on-behalf-of-user configuration. Initialize user-specific access during prediction. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/agent-authentication-model-serving">Authentication methods</a>.</li>
+    <li><strong>Model version mistaken for a frozen world.</strong> An unchanged package can behave differently if a live retriever, endpoint, or dynamically loaded prompt changes. Record those dependencies when investigating a regression. This follows from the documented external-resource and dynamic-prompt design. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/agent-authentication-model-serving">Runtime resources</a>.</li>
+  </ul>
+
+  <h2 id="practice">7. Close the notes and retrieve</h2>
+  <p>Write a one-sentence answer before opening each explanation. These are practice scenarios, not claims about actual exam questions.</p>
+  <div class="scenario"><strong>A.</strong> Your candidate has URI <code>models:/m-abc123</code>. A colleague says it is already registered because the URI starts with <code>models:</code>. What do you check?</div>
+  <details><summary>Reveal A</summary><p>That form identifies an MLflow 3 Logged Model. Check whether it has a registered name and version; the prefix alone cannot establish that. <a href="https://docs.databricks.com/aws/en/mlflow/models">URI forms</a>.</p></details>
+  <div class="scenario"><strong>B.</strong> The wrapper runs locally, but the reloaded package cannot open <code>/tmp/tokenizer.json</code>. Re-register it or change the logging code?</div>
+  <details><summary>Reveal B</summary><p>Change logging to include the file in <code>artifacts</code> and load its resolved path through <code>context.artifacts</code>. Registration cannot fix an omitted file dependency. <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-custom-artifacts">Artifact loading</a>.</p></details>
+  <div class="scenario"><strong>C.</strong> The application requires <code>answer</code> and <code>sources</code>, but the LLM returns a framework message object. Would defining an output signature implement the conversion?</div>
+  <details><summary>Reveal C</summary><p>No. Implement the conversion in the prediction path and describe the resulting contract with the signature. For a ResponsesAgent wrapper, map the result into its response schema. <a href="https://docs.databricks.com/aws/en/agents/custom-agents/model-serving/author-agent-model-serving#what-if-i-already-have-an-agent">Response conversion</a>.</p></details>
+  <div class="scenario"><strong>D.</strong> Version 5 still contains the same code, but the RAG answer changed after new documents arrived. Does this prove the model package was overwritten?</div>
+  <details><summary>Reveal D</summary><p>No. A declared AI Search dependency remains a live service. Inspect a trace to see the retrieved content and subsequent model call. <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">Resource declarations</a>; <a href="https://docs.databricks.com/aws/en/mlflow3/genai/tracing/overview">Execution evidence</a>.</p></details>
+  <div class="scenario"><strong>E.</strong> Complete the call from memory. Source: <code>runs:/r123/rag</code>. Destination: <code>main.training.support_rag</code>.</div>
+  <details><summary>Reveal E</summary><pre><code>mlflow.register_model(
+    "runs:/r123/rag", "main.training.support_rag"
+)</code></pre><p>The source URI comes first. <a href="https://docs.databricks.com/aws/en/mlflow/models#register-models-in-the-model-registry">Documented order</a>.</p></details>
+  <p>Tomorrow, reproduce the call and name four things a deployable package needs without looking. Then explain why an AI Search index declaration does not preserve the index's historical contents.</p>
+  <p><strong>Primary reading:</strong> <a href="https://docs.databricks.com/aws/en/agents/agent-framework/log-agent">Log and register AI agents</a>. Follow with the <a href="https://docs.databricks.com/aws/en/machine-learning/model-serving/deploy-custom-python-code">custom Python wrapper guide</a>. Sources checked September 28, 2026. Academy materials require sign-in; no unverified Academy claims are used.</p>
+  <p>Send the agent your answers A–E, or ask about any unclear boundary. Continue with <a href="0004-assemble-and-deploy-a-rag-application.html">the full RAG deployment decisions</a> and <a href="0006-ci-cd-for-ai-workflows.html">release and prompt lifecycle</a>.</p>
+</main>
+</body>
+</html>

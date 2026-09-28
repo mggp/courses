@@ -140,6 +140,7 @@ summary { cursor: pointer; font-weight: 750; }
 .small { color: var(--muted); font-size: 0.88rem; }
 .trap { color: var(--trap); }
 code { font-size: 0.9em; }
+:not(pre) > code { overflow-wrap: anywhere; }
 
 @media (prefers-color-scheme: dark) {
   :root {
